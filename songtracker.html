@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch Stream Song Detection</title>
+    <title>StreamElements Song Tracker</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,7 +11,6 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
-            line-height: 1.6;
         }
         .container {
             background-color: white;
@@ -19,154 +18,237 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        h1 {
-            color: #6441A4;
-            border-bottom: 2px solid #6441A4;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #6441A4;
-            margin-top: 30px;
-        }
-        .method {
-            border: 1px solid #ddd;
-            border-radius: 8px;
+        #song-info {
+            margin-top: 20px;
             padding: 15px;
-            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
         }
-        code {
-            background-color: #f7f7f7;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-family: monospace;
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
         }
-        .note {
-            background-color: #fffde7;
-            border-left: 4px solid #ffd600;
-            padding: 10px 15px;
-            margin: 15px 0;
+        .playing {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .stopped {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .hidden {
+            display: none;
+        }
+        h3 {
+            margin-top: 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Detecting Songs from Other Twitch Streamers</h1>
+        <h2>StreamElements Song Tracker</h2>
         
-        <p>While it's not possible to directly connect to StreamElements WebSockets for random streamers, here are alternative methods to detect what songs are playing on a Twitch stream:</p>
-        
-        <div class="method">
-            <h2>1. Using Twitch Chat Bots</h2>
-            <p>Many streamers use bots that announce songs in chat:</p>
-            <ul>
-                <li>Connect to Twitch IRC (chat)</li>
-                <li>Monitor for song announcement messages from bots like Nightbot, Moobot, etc.</li>
-                <li>Parse these messages for song information</li>
-            </ul>
-            
-            <div class="note">
-                <strong>Note:</strong> This only works if the streamer has configured their bot to announce songs in chat.
-            </div>
-            
-            <h3>Example Implementation:</h3>
-            <pre><code>
-// Connect to Twitch chat using a library like tmi.js
-const client = new tmi.Client({
-    channels: [ 'crazymangovr' ]
-});
-
-client.connect();
-
-client.on('message', (channel, tags, message, self) => {
-    // Look for messages from known bots
-    if(tags.username === 'nightbot' || tags.username === 'moobot') {
-        // Check if the message contains song information
-        if(message.includes('Now playing:') || message.includes('Current song:')) {
-            const songInfo = parseSongInfo(message);
-            console.log(`Song detected: ${songInfo.title} by ${songInfo.artist}`);
-        }
-    }
-});
-            </code></pre>
+        <div>
+            <label for="jwt-token">StreamElements JWT Token:</label>
+            <input type="password" id="jwt-token" style="width: 100%; margin: 5px 0; padding: 8px;">
+            <button id="connect-btn">Connect</button>
+            <button id="disconnect-btn" disabled>Disconnect</button>
         </div>
         
-        <div class="method">
-            <h2>2. Using Audio Recognition APIs</h2>
-            <p>You can use audio recognition services to identify songs playing on a stream:</p>
-            <ul>
-                <li>Capture audio from the stream</li>
-                <li>Send audio samples to recognition APIs like Shazam API or AudD</li>
-                <li>Process the returned song information</li>
-            </ul>
-            
-            <div class="note">
-                <strong>Note:</strong> This approach requires capturing the stream audio and may have usage limitations or costs from the recognition service.
+        <div id="connection-status">Not connected</div>
+        
+        <div id="song-info">
+            <h3>Current Song</h3>
+            <div id="no-song">No song is currently playing</div>
+            <div id="current-song" class="hidden">
+                <p><strong>Title:</strong> <span id="song-title">-</span></p>
+                <p><strong>Artist:</strong> <span id="song-artist">-</span></p>
+                <p><strong>Requested by:</strong> <span id="song-requester">-</span></p>
             </div>
-            
-            <h3>Example Implementation:</h3>
-            <pre><code>
-// This is a simplified example
-async function identifySongFromStream(audioSample) {
-    const response = await fetch('https://api.audd.io/', {
-        method: 'POST',
-        body: formData // Audio sample + API key
-    });
-    
-    const result = await response.json();
-    
-    if (result.status === 'success' && result.result) {
-        return {
-            title: result.result.title,
-            artist: result.result.artist,
-            album: result.result.album
-        };
-    }
-    
-    return null;
-}
-            </code></pre>
+            <div id="status" class="status stopped">Stopped</div>
         </div>
         
-        <div class="method">
-            <h2>3. Using Twitch Extensions</h2>
-            <p>Some streamers use Twitch Extensions that show what music is playing:</p>
-            <ul>
-                <li>"Soundtrack by Twitch" or "Spotify Now Playing" extensions</li>
-                <li>These extensions may expose information through their API</li>
-            </ul>
-            
-            <div class="note">
-                <strong>Note:</strong> This approach depends on what extensions the streamer has installed and whether they expose public APIs.
-            </div>
+        <div id="song-history">
+            <h3>Song History</h3>
+            <ul id="history-list"></ul>
         </div>
-        
-        <div class="method">
-            <h2>4. Overlay OCR Approach</h2>
-            <p>If the streamer displays song information on their overlay:</p>
-            <ul>
-                <li>Capture frames from the stream</li>
-                <li>Use OCR (Optical Character Recognition) to read text from the overlay</li>
-                <li>Parse the extracted text for song information</li>
-            </ul>
-            
-            <div class="note">
-                <strong>Note:</strong> This approach is highly dependent on the streamer's overlay design and requires more complex implementation.
-            </div>
-            
-            <h3>Example Libraries:</h3>
-            <ul>
-                <li>Tesseract.js for OCR</li>
-                <li>OpenCV.js for image processing</li>
-            </ul>
-        </div>
-        
-        <h2>Legal and Ethical Considerations</h2>
-        <p>When implementing any of these approaches, consider:</p>
-        <ul>
-            <li>Respect Twitch's Terms of Service</li>
-            <li>Only use publicly available data</li>
-            <li>Be mindful of rate limits and API usage restrictions</li>
-            <li>Consider the streamer's privacy</li>
-        </ul>
     </div>
+
+    <script>
+        let socket;
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const jwtTokenInput = document.getElementById('jwt-token');
+        const connectionStatus = document.getElementById('connection-status');
+        const songTitle = document.getElementById('song-title');
+        const songArtist = document.getElementById('song-artist');
+        const songRequester = document.getElementById('song-requester');
+        const noSong = document.getElementById('no-song');
+        const currentSong = document.getElementById('current-song');
+        const status = document.getElementById('status');
+        const historyList = document.getElementById('history-list');
+
+        connectBtn.addEventListener('click', connectWebSocket);
+        disconnectBtn.addEventListener('click', disconnectWebSocket);
+
+        function connectWebSocket() {
+            const jwtToken = jwtTokenInput.value.trim();
+            
+            if (!jwtToken) {
+                alert('Please enter your StreamElements JWT token');
+                return;
+            }
+            
+            // Disconnect existing connection if any
+            if (socket) {
+                socket.close();
+            }
+            
+            // Connect to StreamElements WebSocket
+            socket = new WebSocket('wss://realtime.streamelements.com/socket.io/?transport=websocket');
+            
+            socket.onopen = function() {
+                connectionStatus.textContent = 'Connected to StreamElements';
+                connectionStatus.style.color = 'green';
+                
+                // Authenticate with StreamElements using the JWT token
+                const authMessage = {
+                    method: 'jwt',
+                    token: jwtToken
+                };
+                
+                socket.send(JSON.stringify(authMessage));
+                
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            };
+            
+            socket.onclose = function() {
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.style.color = 'red';
+                
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            };
+            
+            socket.onerror = function(error) {
+                connectionStatus.textContent = 'Error connecting to StreamElements';
+                connectionStatus.style.color = 'red';
+                console.error('WebSocket error:', error);
+            };
+            
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                // Log the raw data for debugging
+                console.log('Received message:', data);
+                
+                // Handle authentication response
+                if (data.type === 'authenticated') {
+                    connectionStatus.textContent = 'Authenticated with StreamElements';
+                    connectionStatus.style.color = 'green';
+                }
+                
+                // Handle song events
+                if (data.type === 'event') {
+                    if (data.event && data.event.type === 'song-request') {
+                        handleSongEvent(data.event.data);
+                    }
+                    
+                    // Handle song play/stop events
+                    if (data.data && data.data.event === 'songRequest') {
+                        if (data.data.song) {
+                            updateCurrentSong(data.data.song);
+                        }
+                    }
+                }
+                
+                // Handle player state changes
+                if (data.type === 'player-state-changed') {
+                    const playerState = data.state;
+                    
+                    if (playerState === 'playing') {
+                        showPlaying();
+                    } else if (playerState === 'idle' || playerState === 'stopped') {
+                        showStopped();
+                    }
+                }
+            };
+        }
+        
+        function disconnectWebSocket() {
+            if (socket) {
+                socket.close();
+            }
+        }
+        
+        function updateCurrentSong(song) {
+            if (song) {
+                songTitle.textContent = song.title || 'Unknown Title';
+                songArtist.textContent = song.artist || 'Unknown Artist';
+                songRequester.textContent = song.requester || 'System';
+                
+                noSong.classList.add('hidden');
+                currentSong.classList.remove('hidden');
+                showPlaying();
+                
+                // Add to history
+                addToHistory(song);
+            } else {
+                clearCurrentSong();
+            }
+        }
+        
+        function handleSongEvent(songData) {
+            if (songData) {
+                updateCurrentSong({
+                    title: songData.title || songData.name,
+                    artist: songData.artist,
+                    requester: songData.requester
+                });
+            }
+        }
+        
+        function clearCurrentSong() {
+            songTitle.textContent = '-';
+            songArtist.textContent = '-';
+            songRequester.textContent = '-';
+            
+            noSong.classList.remove('hidden');
+            currentSong.classList.add('hidden');
+            showStopped();
+        }
+        
+        function showPlaying() {
+            status.textContent = 'Playing';
+            status.classList.remove('stopped');
+            status.classList.add('playing');
+        }
+        
+        function showStopped() {
+            status.textContent = 'Stopped';
+            status.classList.remove('playing');
+            status.classList.add('stopped');
+        }
+        
+        function addToHistory(song) {
+            const historyItem = document.createElement('li');
+            historyItem.textContent = `${song.title} - ${song.artist} (requested by ${song.requester})`;
+            
+            // Add to the beginning of the list
+            if (historyList.firstChild) {
+                historyList.insertBefore(historyItem, historyList.firstChild);
+            } else {
+                historyList.appendChild(historyItem);
+            }
+            
+            // Limit history to 10 items
+            if (historyList.children.length > 10) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+    </script>
 </body>
 </html>
