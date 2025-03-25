@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Listen to Channel Song</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        #songInfo { font-size: 24px; color: #333; }
+    </style>
+</head>
+<body>
+    <h1>Current Song Info</h1>
+    <div id="songInfo">Waiting for song data...</div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        const channelId = '{{SEID}}'; // Replace with target channel's StreamElements ID
+        const socket = io('wss://astro.streamelements.com', { transports: ['websocket'] });
+
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket');
+            socket.emit('subscribe', {
+                type: 'subscribe',
+                data: { topic: `channel.${channelId}.mediarequest` }
+            });
+        });
+
+        socket.on('event', (data) => {
+            const songInfoDiv = document.getElementById('songInfo');
+            if (data.type === 'mediarequest' && data.data && data.data.current) {
+                const song = data.data.current;
+                const artist = song.artist || 'Unknown Artist';
+                const title = song.title || 'Unknown Song';
+                const duration = song.duration || 0; // Duration in seconds
+                const position = song.position || 0; // Current position in seconds
+                const progress = duration > 0 ? Math.round((position / duration) * 100) : 0;
+
+                songInfoDiv.textContent = `Now Playing: ${artist} - ${title} (${progress}% - ${position}/${duration}s)`;
+            } else {
+                songInfoDiv.textContent = 'No song currently playing or stopped';
+            }
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('songInfo').textContent = 'Disconnected';
+        });
+    </script>
+</body>
+</html>
