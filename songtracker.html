@@ -3,252 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamElements Song Tracker</title>
+    <title>Twitch Stream Text Detector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 20px;
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
         }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        #videoContainer {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
         }
-        #song-info {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #f9f9f9;
+        #twitchFrame {
+            width: 100%;
+            height: 480px;
+            border: none;
         }
-        .status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .playing {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .stopped {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .hidden {
+        #canvas {
             display: none;
         }
-        h3 {
-            margin-top: 0;
+        #captureArea {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            border: 2px dashed red;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            min-height: 100px;
+            background-color: #f9f9f9;
+        }
+        .controls {
+            margin: 15px 0;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        #confidence {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        #extractedText {
+            font-weight: bold;
+        }
+        #settings {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .setting {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 200px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>StreamElements Song Tracker</h2>
-        
-        <div>
-            <label for="jwt-token">StreamElements JWT Token:</label>
-            <input type="password" id="jwt-token" style="width: 100%; margin: 5px 0; padding: 8px;">
-            <button id="connect-btn">Connect</button>
-            <button id="disconnect-btn" disabled>Disconnect</button>
+    <h1>Twitch Stream Text Detector</h1>
+    
+    <div id="settings">
+        <div class="setting">
+            <label for="captureHeight">Capture Area Height (px):</label>
+            <input type="number" id="captureHeight" value="80" min="10" max="200">
         </div>
-        
-        <div id="connection-status">Not connected</div>
-        
-        <div id="song-info">
-            <h3>Current Song</h3>
-            <div id="no-song">No song is currently playing</div>
-            <div id="current-song" class="hidden">
-                <p><strong>Title:</strong> <span id="song-title">-</span></p>
-                <p><strong>Artist:</strong> <span id="song-artist">-</span></p>
-                <p><strong>Requested by:</strong> <span id="song-requester">-</span></p>
-            </div>
-            <div id="status" class="status stopped">Stopped</div>
+        <div class="setting">
+            <label for="captureInterval">Capture Interval (ms):</label>
+            <input type="number" id="captureInterval" value="2000" min="500" max="10000">
         </div>
-        
-        <div id="song-history">
-            <h3>Song History</h3>
-            <ul id="history-list"></ul>
+        <div class="setting">
+            <label for="confidenceThreshold">Confidence Threshold (%):</label>
+            <input type="number" id="confidenceThreshold" value="60" min="0" max="100">
         </div>
+    </div>
+    
+    <div id="videoContainer">
+        <iframe id="twitchFrame" src="https://player.twitch.tv/?channel=crazymangovr&parent=localhost" frameborder="0" allowfullscreen></iframe>
+        <div id="captureArea"></div>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+        <button id="startBtn">Start Text Detection</button>
+        <button id="stopBtn" disabled>Stop Detection</button>
+        <button id="captureBtn">Capture Once</button>
+    </div>
+    
+    <div id="result">
+        <h3>Detected Text:</h3>
+        <div id="extractedText">No text detected yet...</div>
+        <div id="confidence"></div>
+        <div id="history"></div>
     </div>
 
     <script>
-        let socket;
-        const connectBtn = document.getElementById('connect-btn');
-        const disconnectBtn = document.getElementById('disconnect-btn');
-        const jwtTokenInput = document.getElementById('jwt-token');
-        const connectionStatus = document.getElementById('connection-status');
-        const songTitle = document.getElementById('song-title');
-        const songArtist = document.getElementById('song-artist');
-        const songRequester = document.getElementById('song-requester');
-        const noSong = document.getElementById('no-song');
-        const currentSong = document.getElementById('current-song');
-        const status = document.getElementById('status');
-        const historyList = document.getElementById('history-list');
-
-        connectBtn.addEventListener('click', connectWebSocket);
-        disconnectBtn.addEventListener('click', disconnectWebSocket);
-
-        function connectWebSocket() {
-            const jwtToken = jwtTokenInput.value.trim();
-            
-            if (!jwtToken) {
-                alert('Please enter your StreamElements JWT token');
-                return;
+        // Initialize Tesseract
+        const worker = Tesseract.createWorker();
+        
+        // DOM elements
+        const twitchFrame = document.getElementById('twitchFrame');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const captureArea = document.getElementById('captureArea');
+        const extractedText = document.getElementById('extractedText');
+        const confidenceElement = document.getElementById('confidence');
+        const historyElement = document.getElementById('history');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        
+        // Settings
+        const captureHeightInput = document.getElementById('captureHeight');
+        const captureIntervalInput = document.getElementById('captureInterval');
+        const confidenceThresholdInput = document.getElementById('confidenceThreshold');
+        
+        // Variables
+        let captureInterval;
+        let isDetecting = false;
+        let history = [];
+        
+        // Update capture area height when setting changes
+        captureHeightInput.addEventListener('change', () => {
+            captureArea.style.height = `${captureHeightInput.value}px`;
+        });
+        
+        // Initialize Tesseract Worker
+        async function initTesseract() {
+            await worker.load();
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+            console.log('Tesseract worker initialized');
+        }
+        
+        // Capture frame from Twitch stream
+        async function captureFrame() {
+            try {
+                // Set canvas dimensions
+                const frameWidth = twitchFrame.clientWidth;
+                const captureHeight = parseInt(captureHeightInput.value);
+                canvas.width = frameWidth;
+                canvas.height = captureHeight;
+                
+                // This is a placeholder - in a real implementation, you'd need to capture the actual video frame
+                // Note: Due to cross-origin restrictions, you cannot directly access the pixels of an iframe
+                // This is just a demonstration of how the logic would work
+                
+                // For a real implementation, you would need to:
+                // 1. Use browser extensions or a proxy server to get around cross-origin restrictions
+                // 2. Or use Twitch API to get the stream directly
+                
+                // For now, let's just demonstrate with a placeholder image
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.fillText('Simulated Twitch Stream Text', 10, 40);
+                
+                // Process the captured frame
+                await processFrame();
+            } catch (error) {
+                console.error('Error capturing frame:', error);
+                extractedText.innerText = 'Error capturing frame';
             }
-            
-            // Disconnect existing connection if any
-            if (socket) {
-                socket.close();
-            }
-            
-            // Connect to StreamElements WebSocket
-            socket = new WebSocket('wss://realtime.streamelements.com/socket.io/?transport=websocket');
-            
-            socket.onopen = function() {
-                connectionStatus.textContent = 'Connected to StreamElements';
-                connectionStatus.style.color = 'green';
+        }
+        
+        // Process the captured frame with Tesseract OCR
+        async function processFrame() {
+            try {
+                const imageData = canvas.toDataURL('image/png');
                 
-                // Authenticate with StreamElements using the JWT token
-                const authMessage = {
-                    method: 'jwt',
-                    token: jwtToken
-                };
+                // Recognize text
+                const result = await worker.recognize(imageData);
+                const confidence = result.data.confidence;
+                const text = result.data.text.trim();
+                const confidenceThreshold = parseInt(confidenceThresholdInput.value);
                 
-                socket.send(JSON.stringify(authMessage));
+                // Update UI
+                confidenceElement.innerText = `Confidence: ${confidence.toFixed(2)}%`;
                 
-                connectBtn.disabled = true;
-                disconnectBtn.disabled = false;
-            };
-            
-            socket.onclose = function() {
-                connectionStatus.textContent = 'Disconnected';
-                connectionStatus.style.color = 'red';
-                
-                connectBtn.disabled = false;
-                disconnectBtn.disabled = true;
-            };
-            
-            socket.onerror = function(error) {
-                connectionStatus.textContent = 'Error connecting to StreamElements';
-                connectionStatus.style.color = 'red';
-                console.error('WebSocket error:', error);
-            };
-            
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                
-                // Log the raw data for debugging
-                console.log('Received message:', data);
-                
-                // Handle authentication response
-                if (data.type === 'authenticated') {
-                    connectionStatus.textContent = 'Authenticated with StreamElements';
-                    connectionStatus.style.color = 'green';
-                }
-                
-                // Handle song events
-                if (data.type === 'event') {
-                    if (data.event && data.event.type === 'song-request') {
-                        handleSongEvent(data.event.data);
-                    }
+                if (confidence >= confidenceThreshold && text.length > 0) {
+                    extractedText.innerText = text;
                     
-                    // Handle song play/stop events
-                    if (data.data && data.data.event === 'songRequest') {
-                        if (data.data.song) {
-                            updateCurrentSong(data.data.song);
-                        }
-                    }
-                }
-                
-                // Handle player state changes
-                if (data.type === 'player-state-changed') {
-                    const playerState = data.state;
+                    // Add to history
+                    const timestamp = new Date().toLocaleTimeString();
+                    history.unshift(`[${timestamp}] ${text}`);
+                    if (history.length > 10) history.pop();
                     
-                    if (playerState === 'playing') {
-                        showPlaying();
-                    } else if (playerState === 'idle' || playerState === 'stopped') {
-                        showStopped();
-                    }
+                    // Update history display
+                    historyElement.innerHTML = '<h4>Recent Detections:</h4>' + 
+                        history.map(item => `<div>${item}</div>`).join('');
+                } else if (text.length === 0) {
+                    extractedText.innerText = 'No text detected';
+                } else {
+                    extractedText.innerText = `Text detected but below confidence threshold (${confidence.toFixed(2)}%)`;
                 }
-            };
-        }
-        
-        function disconnectWebSocket() {
-            if (socket) {
-                socket.close();
+            } catch (error) {
+                console.error('Error processing frame:', error);
+                extractedText.innerText = 'Error processing frame';
             }
         }
         
-        function updateCurrentSong(song) {
-            if (song) {
-                songTitle.textContent = song.title || 'Unknown Title';
-                songArtist.textContent = song.artist || 'Unknown Artist';
-                songRequester.textContent = song.requester || 'System';
-                
-                noSong.classList.add('hidden');
-                currentSong.classList.remove('hidden');
-                showPlaying();
-                
-                // Add to history
-                addToHistory(song);
-            } else {
-                clearCurrentSong();
-            }
-        }
-        
-        function handleSongEvent(songData) {
-            if (songData) {
-                updateCurrentSong({
-                    title: songData.title || songData.name,
-                    artist: songData.artist,
-                    requester: songData.requester
-                });
-            }
-        }
-        
-        function clearCurrentSong() {
-            songTitle.textContent = '-';
-            songArtist.textContent = '-';
-            songRequester.textContent = '-';
+        // Start continuous detection
+        function startDetection() {
+            if (isDetecting) return;
+            isDetecting = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
             
-            noSong.classList.remove('hidden');
-            currentSong.classList.add('hidden');
-            showStopped();
+            const interval = parseInt(captureIntervalInput.value);
+            captureFrame(); // Capture immediately
+            captureInterval = setInterval(captureFrame, interval);
         }
         
-        function showPlaying() {
-            status.textContent = 'Playing';
-            status.classList.remove('stopped');
-            status.classList.add('playing');
-        }
-        
-        function showStopped() {
-            status.textContent = 'Stopped';
-            status.classList.remove('playing');
-            status.classList.add('stopped');
-        }
-        
-        function addToHistory(song) {
-            const historyItem = document.createElement('li');
-            historyItem.textContent = `${song.title} - ${song.artist} (requested by ${song.requester})`;
+        // Stop continuous detection
+        function stopDetection() {
+            if (!isDetecting) return;
+            isDetecting = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
             
-            // Add to the beginning of the list
-            if (historyList.firstChild) {
-                historyList.insertBefore(historyItem, historyList.firstChild);
-            } else {
-                historyList.appendChild(historyItem);
-            }
-            
-            // Limit history to 10 items
-            if (historyList.children.length > 10) {
-                historyList.removeChild(historyList.lastChild);
-            }
+            clearInterval(captureInterval);
         }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startDetection);
+        stopBtn.addEventListener('click', stopDetection);
+        captureBtn.addEventListener('click', captureFrame);
+        
+        // Initialize
+        initTesseract();
     </script>
 </body>
 </html>
