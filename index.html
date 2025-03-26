@@ -223,14 +223,14 @@ if (window.location.hash) {
       break;
     }
   }
+}
 
-  // Twitch OAuth endpoint
+// Twitch OAuth endpoint
   const clientId = 'kskipdok91tc4eop7e2hpgwbnoctk2';
   const redirectUri = window.location.origin + window.location.pathname;
   const scope = 'chat:read chat:edit channel:read:hype_train channel:read:subscriptions channel:read:polls channel:read:predictions channel:read:redemptions user:read:whispers';
   const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${scope}`;
   window.location.href = authUrl;
-}
 </script>
 
 </script>
