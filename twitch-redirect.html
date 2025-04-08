@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html><body>
+<html>
+<body>
   <script>
-    if (location.hash) {
-      window.opener.postMessage(location.hash, "*");
-    }
+    // Send the access token back to the main window
+    window.opener.postMessage(location.hash, "*");
+    window.close();
   </script>
-  You may close this window.
-</body></html>
+  Logging in...
+</body>
+</html>
