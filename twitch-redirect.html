@@ -1,18 +1,9 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Redirecting...</title>
-</head>
-<body>
-  <p>Logging you in...</p>
+<html><body>
   <script>
-    const hash = location.hash.substring(1);
-    const token = new URLSearchParams(hash).get("access_token");
-    if (token && window.opener) {
-      window.opener.postMessage({ type: "twitch_token", token }, "*");
+    if (location.hash) {
+      window.opener.postMessage(location.hash, "*");
     }
-    document.body.innerHTML = "<b>Logged in! You can close this tab.</b>";
-    setTimeout(() => window.close(), 1000);
   </script>
-</body>
-</html>
+  You may close this window.
+</body></html>
