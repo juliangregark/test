@@ -5,7 +5,9 @@
       const hash = new URLSearchParams(location.hash.slice(1));
       const access_token = hash.get('access_token');
       if (access_token) {
-         window.opener?.postMessage(location.hash, '*');
+        window.opener?.postMessage({ token: access_token }, '*');
+      } else {
+        window.opener?.postMessage({ error: 'missing_token' }, '*');
       }
       window.close();
     </script>
