@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Stream Viewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg: #111111;
+      --panel: #0f0f0f;
+      --muted: #cfcfcf;
+      --accent-blue: #2f80ed;
+      --height-top: 56px;
+      --chat-width: 360px;
+      --placeholder-bg: rgba(255,255,255,0.02);
+      --placeholder-inner: rgba(255,255,255,0.01);
+      --input-height: 56px;
+      --hidden-player-size: 200px; /* Twitch requires the embed to be visible & meet minimum viewport size */
+    }
+
+    *{box-sizing:border-box}
+    html,body{
+      height:100%;
+      margin:0;
+      padding:0;
+      background:var(--bg);
+      color:#fff;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    /* Topbar */
+    .topbar{
+      height:var(--height-top);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 12px;
+      background:linear-gradient(180deg,#131313,#0f0f0f);
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      position:fixed;
+      left:0;
+      right:0;
+      top:0;
+      z-index:1000;
+    }
+    .menu-icon{ width:22px; height:22px; opacity:0.9; }
+
+    /* Main */
+    .main{
+      display:flex;
+      gap:16px;
+      height: calc(100vh - var(--height-top));
+      padding:16px;
+      padding-top: calc(var(--height-top) + 16px);
+    }
+
+    .player-area, .sidebar{
+      border-radius:8px;
+      overflow:hidden;
+      position:relative;
+      border:1px solid rgba(255,255,255,0.02);
+      background:linear-gradient(180deg,#0b0b0b,#010101);
+    }
+
+    .player-area{
+      flex:1;
+      min-height: 420px;
+      display:flex;
+      align-items:stretch;
+      justify-content:stretch;
+    }
+
+    .sidebar{
+      width:var(--chat-width);
+      min-width:260px;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* Placeholder large panel that looks like image 4:
+       big inset rectangle with muted placeholder text and an underline */
+    .placeholder {
+      margin:18px;
+      flex:1;
+      border-radius:6px;
+      background: linear-gradient(180deg, var(--placeholder-bg), rgba(0,0,0,0.02));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      min-height: 320px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6) inset, 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .placeholder-inner {
+      width:calc(100% - 120px);
+      max-width:920px;
+      background: var(--placeholder-inner);
+      padding:18px 18px 8px 18px;
+      border-radius:6px;
+      display:flex;
+      flex-direction:column;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+
+    .placeholder-label {
+      color: rgba(255,255,255,0.6);
+      font-size:16px;
+      margin-bottom:8px;
+    }
+
+    /* big, full-width input that visually looks like the provided "favorite movie" image */
+    .big-input-wrap {
+      display:block;
+      width:100%;
+      background:transparent;
+      padding:0;
+    }
+    .big-input {
+      width:100%;
+      height:var(--input-height);
+      border:0;
+      outline:0;
+      background:transparent;
+      color:var(--muted);
+      font-size:16px;
+      padding:12px 14px;
+      border-radius:4px;
+    }
+    /* the inner "tray" to simulate inset area with subtle shadow */
+    .big-input-tray {
+      background: rgba(0,0,0,0.15);
+      border-radius:4px;
+      padding:4px;
+      box-shadow: inset 0 6px 14px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    /* underline accent under the input */
+    .big-underline {
+      height:6px;
+      margin-top:12px;
+      border-radius:4px;
+      background: linear-gradient(90deg, rgba(47,128,237,0.95) 0%, rgba(124,58,237,0.9) 100%);
+      opacity:0.9;
+    }
+
+    /* small inline submit button inside the placeholder's right */
+    .submit-btn {
+      margin-left:12px;
+      background:var(--accent-blue);
+      color:#fff;
+      border:0;
+      padding:10px 14px;
+      font-size:16px;
+      border-radius:6px;
+      cursor:pointer;
+      box-shadow:0 6px 14px rgba(47,128,237,0.12);
+    }
+
+    /* After loading, iframe should occupy the same area */
+    .player-iframe, .chat-iframe {
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+      background:#000;
+    }
+
+    /* Sidebar placeholder/header */
+    .sidebar .header {
+      padding:12px;
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      color:var(--muted);
+      font-weight:600;
+    }
+    .sidebar .chat-placeholder {
+      margin:12px;
+      background:var(--placeholder-inner);
+      border-radius:6px;
+      padding:12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chat-input {
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+    .chat-input .field {
+      border:0;
+      background:transparent;
+      padding:8px 6px;
+      color:var(--muted);
+      outline:0;
+    }
+    .chat-input .underline {
+      height:4px;
+      margin-top:8px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border-radius:3px;
+    }
+
+    .chat-area {
+      flex:1;
+      margin:12px;
+      border-radius:6px;
+      overflow:hidden;
+      background: linear-gradient(180deg,#070707,#050505);
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    /* small overlay controls after load so people can change usernames */
+    .mini-controls {
+      position:absolute;
+      top:12px;
+      left:12px;
+      display:flex;
+      gap:8px;
+      z-index:40;
+      align-items:center;
+      background:rgba(0,0,0,0.35);
+      padding:6px;
+      border-radius:8px;
+      backdrop-filter: blur(4px);
+    }
+    .mini-controls input{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.04);
+      color:var(--muted);
+      padding:6px 8px;
+      border-radius:6px;
+      font-size:13px;
+    }
+    .mini-controls button{
+      background:transparent;
+      color:var(--muted);
+      border:1px solid rgba(255,255,255,0.04);
+      padding:6px 8px;
+      border-radius:6px;
+      cursor:pointer;
+    }
+
+    /* The "visible but small" hidden Twitch player container:
+       - kept inside viewport with minimum size (required by Twitch embed)
+       - low visual impact via low opacity and small size
+    */
+    #hiddenTwitchContainer {
+      position:fixed;
+      left:12px;
+      bottom:12px;
+      width:var(--hidden-player-size);
+      height:var(--hidden-player-size);
+      z-index:9999;
+      border-radius:8px;
+      overflow:hidden;
+      background:rgba(0,0,0,0.18);
+      box-shadow:0 8px 30px rgba(0,0,0,0.6);
+      display:none; /* hidden by default; shown when we need it visible to satisfy Twitch requirements */
+      align-items:center;
+      justify-content:center;
+      pointer-events:auto; /* allow user to interact if they need to unmute */
+    }
+    #hiddenTwitchContainer.minimal {
+      opacity:0.06; /* very low visibility but still counts as visible */
+    }
+    #hiddenToggle {
+      position:fixed;
+      left:12px;
+      bottom:12px;
+      transform:translateY(calc(-1 * (var(--hidden-player-size) + 12px)));
+      z-index:9999;
+      background:rgba(255,255,255,0.04);
+      color:var(--muted);
+      border:0;
+      padding:6px 8px;
+      border-radius:6px;
+      cursor:pointer;
+      display:none; /* shown when hiddenTwitchContainer is available */
+    }
+
+    /* Responsive */
+    @media (max-width:920px){
+      .main{ flex-direction:column; padding:12px; padding-top: calc(var(--height-top) + 12px); }
+      .sidebar{ width:100%; min-width:unset; height:360px; }
+      .player-area{ min-height:280px; }
+      .placeholder-inner { width:calc(100% - 48px); }
+      /* move small player up a bit to avoid covering controls on tiny screens */
+      #hiddenTwitchContainer { left:8px; bottom:8px; width:160px; height:160px; }
+      #hiddenToggle { display:none; } /* hide toggle on small screens to avoid UI overlap */
+    }
+
+    /* placeholders for empty states when iframe present but we still want quick-change */
+    .hidden{ display:none!important; }
+    input::placeholder{ color: rgba(255,255,255,0.32); }
+    .focus-white:focus { color:#fff; }
+  </style>
+
+  <!-- Twitch Embed SDK (used as primary API for controlling a hidden player where possible) -->
+  <script src="https://embed.twitch.tv/embed/v1.js"></script>
+</head>
+<body>
+
+  <div class="topbar" role="navigation" aria-label="Top bar">
+    <div class="left">
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="#cfcfcf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="right">
+      <!-- intentionally left empty to keep the topbar clean -->
+    </div>
+  </div>
+
+  <main class="main">
+    <section class="player-area" aria-label="Stream player area">
+      <!-- initial placeholder: big box with input that looks like the provided image -->
+      <div id="playerPlaceholder" class="placeholder" aria-hidden="false">
+        <div class="placeholder-inner" role="form" aria-label="Load Kick stream">
+          <div class="placeholder-label">What's the Kick channel?</div>
+
+          <div class="big-input-tray">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="big-input-wrap" style="flex:1;">
+                <input id="playerBigInput" class="big-input focus-white" placeholder="e.g. crazymangovr" aria-label="Kick username" />
+              </div>
+              <button id="playerBigSubmit" class="submit-btn" aria-label="Load Kick stream">Load</button>
+            </div>
+            <div class="big-underline" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- iframe container (hidden until we load source) -->
+      <div id="playerFrameWrap" class="player-iframe hidden" style="width:100%;height:100%;">
+        <iframe id="kickEmbed" src="" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" title="Kick player" style="width:100%;height:100%;border:0"></iframe>
+      </div>
+
+      <!-- mini controls that show after load for quick swap -->
+      <div id="playerMini" class="mini-controls hidden" aria-hidden="true">
+        <input id="playerMiniInput" placeholder="Change Kick username" />
+        <button id="playerMiniLoad">↻</button>
+        <button id="playerMiniClear" title="Clear Kick" aria-label="Clear Kick">✕</button>
+      </div>
+    </section>
+
+    <aside class="sidebar" aria-label="Chat area">
+      <div class="header">Stream Chat</div>
+
+      <!-- chat placeholder similar style -->
+      <div id="chatPlaceholder" class="chat-placeholder" aria-hidden="false">
+        <div class="chat-input">
+          <div style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:6px;">Twitch channel</div>
+          <input id="chatBigInput" class="field focus-white" placeholder="e.g. crazymangovr" aria-label="Twitch streamer" />
+          <div class="underline" aria-hidden="true"></div>
+        </div>
+        <button id="chatBigSubmit" class="submit-btn" aria-label="Load Twitch chat">Load</button>
+      </div>
+
+      <!-- chat iframe container -->
+      <div id="chatFrameWrap" class="chat-area hidden" aria-hidden="true">
+        <iframe id="twitchChat" class="chat-iframe" src="" title="Twitch chat"></iframe>
+      </div>
+
+      <!-- mini controls for chat -->
+      <div id="chatMini" class="mini-controls hidden" aria-hidden="true" style="top:8px; right:8px; left:auto;">
+        <input id="chatMiniInput" placeholder="Change Twitch username" />
+        <button id="chatMiniLoad">↻</button>
+        <button id="chatMiniClear" title="Clear Twitch" aria-label="Clear Twitch">✕</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Visible small Twitch player container to satisfy Twitch embed requirements.
+       It's initially hidden and only shown when the user triggers loading Twitch audio. -->
+  <div id="hiddenTwitchContainer" class="minimal" aria-hidden="true" role="region" aria-label="Hidden Twitch audio player">
+    <div id="hiddenTwitchPlayer" style="width:100%;height:100%;"></div>
+  </div>
+  <button id="hiddenToggle" title="Show/Hide small Twitch player">Audio</button>
+
+  <script>
+    // localStorage keys
+    const LS_KICK_KEY = 'streamViewer.kickUser';
+    const LS_TWITCH_KEY = 'streamViewer.twitchUser';
+
+    // Hidden Twitch player reference (SDK or iframe fallback)
+    let hiddenTwitchPlayer = null;
+    let hiddenTwitchIsSDK = false;
+
+    // Helper: show/hide elements
+    function show(el){ el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); }
+    function hide(el){ el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
+
+    // Persist helpers
+    function saveKickUser(user) {
+      if(user) localStorage.setItem(LS_KICK_KEY, user);
+      else localStorage.removeItem(LS_KICK_KEY);
+    }
+    function saveTwitchUser(user) {
+      if(user) localStorage.setItem(LS_TWITCH_KEY, user);
+      else localStorage.removeItem(LS_TWITCH_KEY);
+    }
+
+    // Create or update the hidden Twitch player that will attempt to play audio.
+    // Note: Twitch requires the embed to be visible and meet minimum size/viewport requirements.
+    // We therefore create a small visible player (>= 200x200) and keep it low-visual-impact (low opacity).
+    function createOrUpdateHiddenTwitch(twitchUser) {
+      if(!twitchUser) return;
+
+      // Reveal the small container (must be visible in viewport for Twitch autoplay)
+      const container = document.getElementById('hiddenTwitchContainer');
+      const toggle = document.getElementById('hiddenToggle');
+      container.style.display = 'flex';
+      toggle.style.display = 'inline-block';
+      container.setAttribute('aria-hidden','false');
+
+      // If SDK available, prefer it for programmatic control
+      if(window.Twitch && window.Twitch.Player) {
+        try {
+          // remove existing SDK player if present
+          if(hiddenTwitchPlayer && hiddenTwitchIsSDK) {
+            try { hiddenTwitchPlayer.remove(); } catch(e){ /* ignore */ }
+            hiddenTwitchPlayer = null;
+          }
+
+          hiddenTwitchPlayer = new Twitch.Player('hiddenTwitchPlayer', {
+            channel: twitchUser,
+            width: document.getElementById('hiddenTwitchContainer').clientWidth,
+            height: document.getElementById('hiddenTwitchContainer').clientHeight,
+            autoplay: true
+          });
+          hiddenTwitchIsSDK = true;
+
+          // Try to unmute and set volume — may be blocked by browser autoplay policies.
+          setTimeout(()=> {
+            try {
+              if(typeof hiddenTwitchPlayer.setMuted === 'function') hiddenTwitchPlayer.setMuted(false);
+              if(typeof hiddenTwitchPlayer.setVolume === 'function') hiddenTwitchPlayer.setVolume(1);
+              // attempt to set low quality if supported by SDK (not guaranteed)
+              if(typeof hiddenTwitchPlayer.setQuality === 'function') {
+                try { hiddenTwitchPlayer.setQuality('160p'); } catch(e){ /* ignore */ }
+              }
+            } catch(e){ console.warn('hidden twitch sdk control failed', e); }
+          }, 250);
+          return;
+        } catch(e) {
+          console.warn('Twitch SDK error while creating hidden player, falling back to iframe', e);
+          // fallthrough to iframe fallback
+        }
+      }
+
+      // Fallback: create a visible iframe with required parent param and autoplay
+      try {
+        const parent = encodeURIComponent(location.hostname);
+        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(twitchUser)}&parent=${parent}&autoplay=true`;
+        const playerDiv = document.getElementById('hiddenTwitchPlayer');
+        playerDiv.innerHTML = `<iframe id="hiddenTwitchIframe" src="${src}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen"></iframe>`;
+        hiddenTwitchPlayer = document.getElementById('hiddenTwitchIframe');
+        hiddenTwitchIsSDK = false;
+      } catch(e) {
+        console.warn('Could not create visible Twitch iframe', e);
+      }
+    }
+
+    // Destroy hidden twitch player
+    function destroyHiddenTwitch() {
+      try {
+        if(hiddenTwitchIsSDK && hiddenTwitchPlayer && typeof hiddenTwitchPlayer.remove === 'function') {
+          hiddenTwitchPlayer.remove();
+        } else {
+          const playerDiv = document.getElementById('hiddenTwitchPlayer');
+          playerDiv.innerHTML = '';
+        }
+      } catch(e) { /* ignore */ }
+      hiddenTwitchPlayer = null;
+      hiddenTwitchIsSDK = false;
+      const container = document.getElementById('hiddenTwitchContainer');
+      container.style.display = 'none';
+      container.setAttribute('aria-hidden','true');
+      document.getElementById('hiddenToggle').style.display = 'none';
+    }
+
+    // Kick load from big placeholder
+    function loadKickFromBig() {
+      const user = document.getElementById('playerBigInput').value.trim();
+      const frame = document.getElementById('kickEmbed');
+      if(!user) return;
+      frame.src = 'https://player.kick.com/' + encodeURIComponent(user);
+      saveKickUser(user);
+      show(document.getElementById('playerFrameWrap'));
+      show(document.getElementById('playerMini'));
+      hide(document.getElementById('playerPlaceholder'));
+      document.getElementById('playerMiniInput').value = user;
+    }
+
+    // Twitch chat load from panel
+    // Additionally: on explicit user Load action we will create the visible small Twitch player (audio) too.
+    function loadTwitchFromBig() {
+      const user = document.getElementById('chatBigInput').value.trim();
+      const frame = document.getElementById('twitchChat');
+      if(!user) return;
+
+      const parent = encodeURIComponent(location.hostname);
+      frame.src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + parent;
+      saveTwitchUser(user);
+      show(document.getElementById('chatFrameWrap'));
+      show(document.getElementById('chatMini'));
+      hide(document.getElementById('chatPlaceholder'));
+      document.getElementById('chatMiniInput').value = user;
+
+      // Create/update visible small Twitch player (user gesture ensures higher chance of autoplay)
+      try {
+        createOrUpdateHiddenTwitch(user);
+      } catch (err) {
+        console.warn('hidden twitch creation failed', err);
+      }
+    }
+
+    // Mini control re-load handlers
+    function loadKickFromMini(){
+      const user = document.getElementById('playerMiniInput').value.trim();
+      if(!user) return;
+      document.getElementById('kickEmbed').src = 'https://player.kick.com/' + encodeURIComponent(user);
+      saveKickUser(user);
+    }
+    function loadTwitchFromMini(){
+      const user = document.getElementById('chatMiniInput').value.trim();
+      if(!user) return;
+      document.getElementById('twitchChat').src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + encodeURIComponent(location.hostname);
+      saveTwitchUser(user);
+
+      // update visible small audio player (user gesture)
+      try { createOrUpdateHiddenTwitch(user); } catch (err) { console.warn(err); }
+    }
+
+    // Clear handlers (remove from localStorage and restore placeholder)
+    function clearKick() {
+      document.getElementById('kickEmbed').src = '';
+      saveKickUser(null);
+      hide(document.getElementById('playerFrameWrap'));
+      hide(document.getElementById('playerMini'));
+      show(document.getElementById('playerPlaceholder'));
+      document.getElementById('playerBigInput').value = '';
+      document.getElementById('playerMiniInput').value = '';
+    }
+    function clearTwitch() {
+      document.getElementById('twitchChat').src = '';
+      saveTwitchUser(null);
+      hide(document.getElementById('chatFrameWrap'));
+      hide(document.getElementById('chatMini'));
+      show(document.getElementById('chatPlaceholder'));
+      document.getElementById('chatBigInput').value = '';
+      document.getElementById('chatMiniInput').value = '';
+
+      // destroy visible twitch audio player when user clears
+      destroyHiddenTwitch();
+    }
+
+    // Toggle the small visible hidden player (user can reveal it to unmute/inspect)
+    document.getElementById('hiddenToggle').addEventListener('click', function(){
+      const container = document.getElementById('hiddenTwitchContainer');
+      if(container.style.display === 'flex') {
+        container.classList.toggle('minimal'); // toggles opacity
+      } else {
+        // show it
+        container.style.display = 'flex';
+        container.classList.add('minimal');
+        this.style.display = 'inline-block';
+      }
+    });
+
+    // Wire up buttons & Enter behavior
+    document.getElementById('playerBigSubmit').addEventListener('click', loadKickFromBig);
+    document.getElementById('chatBigSubmit').addEventListener('click', loadTwitchFromBig);
+    document.getElementById('playerMiniLoad').addEventListener('click', loadKickFromMini);
+    document.getElementById('chatMiniLoad').addEventListener('click', loadTwitchFromMini);
+    document.getElementById('playerMiniClear').addEventListener('click', clearKick);
+    document.getElementById('chatMiniClear').addEventListener('click', clearTwitch);
+
+    document.getElementById('playerBigInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadKickFromBig();
+    });
+    document.getElementById('chatBigInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadTwitchFromBig();
+    });
+    document.getElementById('playerMiniInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadKickFromMini();
+    });
+    document.getElementById('chatMiniInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadTwitchFromMini();
+    });
+
+    // On page load: if localStorage has saved values, prefill and auto-load
+    window.addEventListener('DOMContentLoaded', function(){
+      try {
+        const savedKick = localStorage.getItem(LS_KICK_KEY);
+        const savedTwitch = localStorage.getItem(LS_TWITCH_KEY);
+
+        if(savedKick) {
+          document.getElementById('playerBigInput').value = savedKick;
+          loadKickFromBig();
+        }
+
+        if(savedTwitch) {
+          document.getElementById('chatBigInput').value = savedTwitch;
+          // load chat and create visible small twitch player (may still be blocked by autoplay policy,
+          // but the container will be visible and sized to meet Twitch's embed requirements)
+          loadTwitchFromBig();
+        }
+      } catch (err) {
+        console.warn('localStorage unavailable', err);
+      }
+    });
+  </script>
+
+</body>
+</html>
