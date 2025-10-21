@@ -1,68 +1,226 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
   <title>Twitch Chat + Kick Stream Embed</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #1e1e1e;
-      color: #fff;
-      padding: 20px;
+    :root{
+      --bg: #141414;
+      --panel: #1f1f1f;
+      --muted: #bdbdbd;
+      --accent: #2f2f2f;
+      --height-top: 60px;
+      --chat-width: 360px;
     }
-    input {
-      margin: 5px;
-      padding: 8px;
+
+    html,body{
+      height:100%;
+      margin:0;
+      padding:0;
+      background:var(--bg);
+      color:#fff;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
     }
-    iframe {
-      border: none;
+
+    /* Topbar */
+    .topbar{
+      height:var(--height-top);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:0 16px;
+      background:linear-gradient(180deg,#1a1a1a,#151515);
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      position:fixed;
+      left:0;
+      right:0;
+      top:0;
+      z-index:1000;
     }
-    .container {
-      display: flex;
-      gap: 20px;
-      margin-top: 20px;
+
+    .topbar .left,
+    .topbar .right{
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
-    .embed-box {
-      flex: 1;
+
+    /* right area: inputs + watch button */
+    .controls{
+      gap:8px;
+      align-items:center;
     }
+    .controls input{
+      height:34px;
+      padding:6px 10px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,0.05);
+      background:var(--accent);
+      color:var(--muted);
+      font-size:13px;
+      min-width:120px;
+    }
+    .controls .watch{
+      height:34px;
+      padding:6px 12px;
+      border-radius:6px;
+      border:0;
+      background:#3b82f6;
+      color:white;
+      font-weight:600;
+      cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    /* Main layout */
+    .main{
+      display:flex;
+      gap:16px;
+      height: calc(100vh - var(--height-top));
+      padding:16px;
+      padding-top: calc(var(--height-top) + 16px);
+      box-sizing:border-box;
+    }
+
+    .player-area{
+      flex:1;
+      background: #000;
+      border-radius:6px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      position:relative;
+    }
+
+    /* Make the player fill the area */
+    .player-area iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+      background:#000;
+    }
+
+    .sidebar{
+      width:var(--chat-width);
+      max-width:40%;
+      min-width:260px;
+      background:linear-gradient(180deg,#161616,#121212);
+      border-left:1px solid rgba(255,255,255,0.03);
+      border-radius:6px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .sidebar .title{
+      padding:12px;
+      font-weight:600;
+      color:var(--muted);
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    }
+    .chat-wrap{
+      flex:1;
+      background:transparent;
+      position:relative;
+    }
+    .chat-wrap iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:transparent;
+    }
+
+    /* Responsive: stack on small screens */
+    @media (max-width:900px){
+      .main{ flex-direction:column; padding:12px; padding-top: calc(var(--height-top) + 12px); }
+      .sidebar{ width:100%; height:360px; border-left:0; margin-top:12px; border-radius:6px; }
+      .player-area{ height: calc(100vh - var(--height-top) - 12px - 360px); }
+    }
+
+    /* small helper */
+    .muted{ color:var(--muted); font-size:13px; }
   </style>
 </head>
 <body>
 
-  <h1>Stream Viewer</h1>
-
-  <label for="twitchUser">Twitch Username:</label>
-  <input type="text" id="twitchUser" placeholder="e.g. xqc" />
-
-  <label for="kickUser">Kick Username:</label>
-  <input type="text" id="kickUser" placeholder="e.g. trainwreckstv" />
-
-  <button onclick="loadEmbeds()">Load</button>
-
-  <div class="container">
-    <div class="embed-box">
-      <h2>Kick Stream</h2>
-      <iframe id="kickEmbed" width="100%" height="480" allowfullscreen></iframe>
+  <div class="topbar" role="navigation" aria-label="Top bar">
+    <div class="left">
+      <!-- simple menu icon -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.9"><path d="M3 6h18M3 12h18M3 18h18" stroke="#cfcfcf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="embed-box">
-      <h2>Twitch Chat</h2>
-      <iframe id="twitchChat" width="100%" height="480"></iframe>
+
+    <div class="right">
+      <div class="controls" style="display:flex">
+        <input id="twitchUserTop" placeholder="Twitch username (e.g. xqc)" aria-label="Twitch username" />
+        <input id="kickUserTop" placeholder="Kick username (e.g. trainwreckstv)" aria-label="Kick username" />
+        <button class="watch" id="watchBtn">Watch</button>
+      </div>
     </div>
   </div>
 
-  <script>
-    function loadEmbeds() {
-      const twitchUser = document.getElementById('twitchUser').value.trim();
-      const kickUser = document.getElementById('kickUser').value.trim();
+  <main class="main">
+    <section class="player-area" aria-label="Stream player">
+      <iframe id="kickEmbed" src="" allowfullscreen allow="autoplay; fullscreen; picture-in-picture"></iframe>
+    </section>
 
-      if (kickUser) {
-        document.getElementById('kickEmbed').src = `https://player.kick.com/${kickUser}`;
+    <aside class="sidebar" aria-label="Chat">
+      <div class="title">Stream Chat</div>
+      <div class="chat-wrap">
+        <iframe id="twitchChat" src=""></iframe>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // Helper to set iframe sources
+    function loadEmbedsFromInputs(twitchUser, kickUser){
+      const kickFrame = document.getElementById('kickEmbed');
+      const chatFrame = document.getElementById('twitchChat');
+
+      if(kickUser){
+        kickFrame.src = 'https://player.kick.com/' + encodeURIComponent(kickUser);
+      } else {
+        kickFrame.src = '';
       }
 
-      if (twitchUser) {
-        document.getElementById('twitchChat').src = `https://www.twitch.tv/embed/${twitchUser}/chat?darkpopout&parent=${location.hostname}`;
+      if(twitchUser){
+        const parent = encodeURIComponent(location.hostname);
+        chatFrame.src = 'https://www.twitch.tv/embed/' + encodeURIComponent(twitchUser) + '/chat?darkpopout&parent=' + parent;
+      } else {
+        chatFrame.src = '';
       }
     }
+
+    // Read from topbar inputs
+    function loadEmbeds(){
+      const twitchUser = document.getElementById('twitchUserTop').value.trim();
+      const kickUser = document.getElementById('kickUserTop').value.trim();
+      loadEmbedsFromInputs(twitchUser, kickUser);
+    }
+
+    // Wire up watch button & Enter key
+    document.getElementById('watchBtn').addEventListener('click', loadEmbeds);
+
+    // Allow Enter to trigger watch for the two topbar inputs
+    ['twitchUserTop','kickUserTop'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){
+          loadEmbeds();
+        }
+      });
+    });
+
+    // Optional: prefill demo values for convenience (remove if undesired)
+    // document.getElementById('twitchUserTop').value = 'xqc';
+    // document.getElementById('kickUserTop').value = 'trainwreckstv';
+    // loadEmbeds();
   </script>
 
 </body>
