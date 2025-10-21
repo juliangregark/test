@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Twitch Chat + Kick Stream Embed</title>
+  <title>Stream Viewer</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root{
@@ -44,16 +44,6 @@
       z-index:1000;
     }
     .menu-icon{ width:22px; height:22px; opacity:0.9; }
-    .watch-all{
-      background:var(--accent-blue);
-      color:#fff;
-      padding:8px 12px;
-      border-radius:8px;
-      border:0;
-      cursor:pointer;
-      font-weight:600;
-      box-shadow:0 4px 12px rgba(47,128,237,0.12);
-    }
 
     /* Main */
     .main{
@@ -272,7 +262,7 @@
       <svg class="menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="#cfcfcf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <div class="right">
-      <button id="watchAllBtn" class="watch-all" title="Load both panels">Watch All</button>
+      <!-- intentionally left empty to keep the topbar clean -->
     </div>
   </div>
 
@@ -393,12 +383,6 @@
     });
     document.getElementById('chatMiniInput').addEventListener('keydown', function(e){
       if(e.key === 'Enter') loadTwitchFromMini();
-    });
-
-    // Watch All: trigger both panel loads
-    document.getElementById('watchAllBtn').addEventListener('click', function(){
-      loadKickFromBig();
-      loadTwitchFromBig();
     });
 
     // If you want to preset values for testing, uncomment:
