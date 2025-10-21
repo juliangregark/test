@@ -294,6 +294,7 @@
       <div id="playerMini" class="mini-controls hidden" aria-hidden="true">
         <input id="playerMiniInput" placeholder="Change Kick username" />
         <button id="playerMiniLoad">↻</button>
+        <button id="playerMiniClear" title="Clear Kick" aria-label="Clear Kick">✕</button>
       </div>
     </section>
 
@@ -319,14 +320,29 @@
       <div id="chatMini" class="mini-controls hidden" aria-hidden="true" style="top:8px; right:8px; left:auto;">
         <input id="chatMiniInput" placeholder="Change Twitch username" />
         <button id="chatMiniLoad">↻</button>
+        <button id="chatMiniClear" title="Clear Twitch" aria-label="Clear Twitch">✕</button>
       </div>
     </aside>
   </main>
 
   <script>
+    // localStorage keys
+    const LS_KICK_KEY = 'streamViewer.kickUser';
+    const LS_TWITCH_KEY = 'streamViewer.twitchUser';
+
     // Helper: show/hide elements
     function show(el){ el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); }
     function hide(el){ el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
+
+    // Persist helpers
+    function saveKickUser(user) {
+      if(user) localStorage.setItem(LS_KICK_KEY, user);
+      else localStorage.removeItem(LS_KICK_KEY);
+    }
+    function saveTwitchUser(user) {
+      if(user) localStorage.setItem(LS_TWITCH_KEY, user);
+      else localStorage.removeItem(LS_TWITCH_KEY);
+    }
 
     // Kick load from big placeholder
     function loadKickFromBig() {
@@ -334,6 +350,7 @@
       const frame = document.getElementById('kickEmbed');
       if(!user) return;
       frame.src = 'https://player.kick.com/' + encodeURIComponent(user);
+      saveKickUser(user);
       show(document.getElementById('playerFrameWrap'));
       show(document.getElementById('playerMini'));
       hide(document.getElementById('playerPlaceholder'));
@@ -348,6 +365,7 @@
       if(!user) return;
       const parent = encodeURIComponent(location.hostname);
       frame.src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + parent;
+      saveTwitchUser(user);
       show(document.getElementById('chatFrameWrap'));
       show(document.getElementById('chatMini'));
       hide(document.getElementById('chatPlaceholder'));
@@ -359,11 +377,35 @@
       const user = document.getElementById('playerMiniInput').value.trim();
       if(!user) return;
       document.getElementById('kickEmbed').src = 'https://player.kick.com/' + encodeURIComponent(user);
+      saveKickUser(user);
+      // keep state shown
     }
     function loadTwitchFromMini(){
       const user = document.getElementById('chatMiniInput').value.trim();
       if(!user) return;
       document.getElementById('twitchChat').src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + encodeURIComponent(location.hostname);
+      saveTwitchUser(user);
+    }
+
+    // Clear handlers (remove from localStorage and restore placeholder)
+    function clearKick() {
+      // stop iframe and show placeholder
+      document.getElementById('kickEmbed').src = '';
+      saveKickUser(null);
+      hide(document.getElementById('playerFrameWrap'));
+      hide(document.getElementById('playerMini'));
+      show(document.getElementById('playerPlaceholder'));
+      document.getElementById('playerBigInput').value = '';
+      document.getElementById('playerMiniInput').value = '';
+    }
+    function clearTwitch() {
+      document.getElementById('twitchChat').src = '';
+      saveTwitchUser(null);
+      hide(document.getElementById('chatFrameWrap'));
+      hide(document.getElementById('chatMini'));
+      show(document.getElementById('chatPlaceholder'));
+      document.getElementById('chatBigInput').value = '';
+      document.getElementById('chatMiniInput').value = '';
     }
 
     // Wire up buttons & Enter behavior
@@ -371,6 +413,8 @@
     document.getElementById('chatBigSubmit').addEventListener('click', loadTwitchFromBig);
     document.getElementById('playerMiniLoad').addEventListener('click', loadKickFromMini);
     document.getElementById('chatMiniLoad').addEventListener('click', loadTwitchFromMini);
+    document.getElementById('playerMiniClear').addEventListener('click', clearKick);
+    document.getElementById('chatMiniClear').addEventListener('click', clearTwitch);
 
     document.getElementById('playerBigInput').addEventListener('keydown', function(e){
       if(e.key === 'Enter') loadKickFromBig();
@@ -385,6 +429,28 @@
       if(e.key === 'Enter') loadTwitchFromMini();
     });
 
+    // On page load: if localStorage has saved values, prefill and auto-load
+    window.addEventListener('DOMContentLoaded', function(){
+      try {
+        const savedKick = localStorage.getItem(LS_KICK_KEY);
+        const savedTwitch = localStorage.getItem(LS_TWITCH_KEY);
+
+        if(savedKick) {
+          document.getElementById('playerBigInput').value = savedKick;
+          // load immediately
+          loadKickFromBig();
+        }
+
+        if(savedTwitch) {
+          document.getElementById('chatBigInput').value = savedTwitch;
+          // load immediately
+          loadTwitchFromBig();
+        }
+      } catch (err) {
+        // If storage is blocked for any reason, fail silently and keep UI usable
+        console.warn('localStorage unavailable', err);
+      }
+    });
   </script>
 
 </body>
