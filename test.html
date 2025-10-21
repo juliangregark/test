@@ -15,7 +15,7 @@
       --placeholder-bg: rgba(255,255,255,0.02);
       --placeholder-inner: rgba(255,255,255,0.01);
       --input-height: 56px;
-      --hidden-player-size: 200px; /* Twitch requires the embed to be visible & meet minimum viewport size */
+      --hidden-player-size: 220px;
     }
 
     *{box-sizing:border-box}
@@ -29,7 +29,6 @@
       -webkit-font-smoothing:antialiased;
     }
 
-    /* Topbar */
     .topbar{
       height:var(--height-top);
       display:flex;
@@ -46,7 +45,6 @@
     }
     .menu-icon{ width:22px; height:22px; opacity:0.9; }
 
-    /* Main */
     .main{
       display:flex;
       gap:16px;
@@ -69,6 +67,7 @@
       display:flex;
       align-items:stretch;
       justify-content:stretch;
+      position:relative;
     }
 
     .sidebar{
@@ -78,8 +77,6 @@
       flex-direction:column;
     }
 
-    /* Placeholder large panel that looks like image 4:
-       big inset rectangle with muted placeholder text and an underline */
     .placeholder {
       margin:18px;
       flex:1;
@@ -110,13 +107,6 @@
       margin-bottom:8px;
     }
 
-    /* big, full-width input that visually looks like the provided "favorite movie" image */
-    .big-input-wrap {
-      display:block;
-      width:100%;
-      background:transparent;
-      padding:0;
-    }
     .big-input {
       width:100%;
       height:var(--input-height);
@@ -128,7 +118,7 @@
       padding:12px 14px;
       border-radius:4px;
     }
-    /* the inner "tray" to simulate inset area with subtle shadow */
+
     .big-input-tray {
       background: rgba(0,0,0,0.15);
       border-radius:4px;
@@ -136,7 +126,6 @@
       box-shadow: inset 0 6px 14px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.02);
     }
 
-    /* underline accent under the input */
     .big-underline {
       height:6px;
       margin-top:12px;
@@ -145,7 +134,6 @@
       opacity:0.9;
     }
 
-    /* small inline submit button inside the placeholder's right */
     .submit-btn {
       margin-left:12px;
       background:var(--accent-blue);
@@ -158,7 +146,6 @@
       box-shadow:0 6px 14px rgba(47,128,237,0.12);
     }
 
-    /* After loading, iframe should occupy the same area */
     .player-iframe, .chat-iframe {
       width:100%;
       height:100%;
@@ -167,7 +154,6 @@
       background:#000;
     }
 
-    /* Sidebar placeholder/header */
     .sidebar .header {
       padding:12px;
       border-bottom:1px solid rgba(255,255,255,0.03);
@@ -183,35 +169,12 @@
       align-items:center;
       gap:8px;
     }
-    .chat-input {
-      flex:1;
-      display:flex;
-      flex-direction:column;
-    }
-    .chat-input .field {
-      border:0;
-      background:transparent;
-      padding:8px 6px;
-      color:var(--muted);
-      outline:0;
-    }
-    .chat-input .underline {
-      height:4px;
-      margin-top:8px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-      border-radius:3px;
-    }
+    .chat-input { flex:1; display:flex; flex-direction:column; }
+    .chat-input .field { border:0; background:transparent; padding:8px 6px; color:var(--muted); outline:0; }
+    .chat-input .underline { height:4px; margin-top:8px; background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border-radius:3px; }
 
-    .chat-area {
-      flex:1;
-      margin:12px;
-      border-radius:6px;
-      overflow:hidden;
-      background: linear-gradient(180deg,#070707,#050505);
-      border:1px solid rgba(255,255,255,0.02);
-    }
+    .chat-area { flex:1; margin:12px; border-radius:6px; overflow:hidden; background: linear-gradient(180deg,#070707,#050505); border:1px solid rgba(255,255,255,0.02); }
 
-    /* small overlay controls after load so people can change usernames */
     .mini-controls {
       position:absolute;
       top:12px;
@@ -225,27 +188,10 @@
       border-radius:8px;
       backdrop-filter: blur(4px);
     }
-    .mini-controls input{
-      background:transparent;
-      border:1px solid rgba(255,255,255,0.04);
-      color:var(--muted);
-      padding:6px 8px;
-      border-radius:6px;
-      font-size:13px;
-    }
-    .mini-controls button{
-      background:transparent;
-      color:var(--muted);
-      border:1px solid rgba(255,255,255,0.04);
-      padding:6px 8px;
-      border-radius:6px;
-      cursor:pointer;
-    }
+    .mini-controls input{ background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); padding:6px 8px; border-radius:6px; font-size:13px; }
+    .mini-controls button{ background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:6px; cursor:pointer; }
 
-    /* The "visible but small" hidden Twitch player container:
-       - kept inside viewport with minimum size (required by Twitch embed)
-       - low visual impact via low opacity and small size
-    */
+    /* small visible container required by Twitch embed to allow autoplay */
     #hiddenTwitchContainer {
       position:fixed;
       left:12px;
@@ -255,49 +201,27 @@
       z-index:9999;
       border-radius:8px;
       overflow:hidden;
-      background:rgba(0,0,0,0.18);
+      background:rgba(0,0,0,0.14);
       box-shadow:0 8px 30px rgba(0,0,0,0.6);
-      display:none; /* hidden by default; shown when we need it visible to satisfy Twitch requirements */
+      display:none;
       align-items:center;
       justify-content:center;
-      pointer-events:auto; /* allow user to interact if they need to unmute */
+      pointer-events:auto;
     }
-    #hiddenTwitchContainer.minimal {
-      opacity:0.06; /* very low visibility but still counts as visible */
-    }
-    #hiddenToggle {
-      position:fixed;
-      left:12px;
-      bottom:12px;
-      transform:translateY(calc(-1 * (var(--hidden-player-size) + 12px)));
-      z-index:9999;
-      background:rgba(255,255,255,0.04);
-      color:var(--muted);
-      border:0;
-      padding:6px 8px;
-      border-radius:6px;
-      cursor:pointer;
-      display:none; /* shown when hiddenTwitchContainer is available */
-    }
+    #hiddenTwitchContainer.minimal { opacity:0.06; }
 
-    /* Responsive */
+    .hidden{ display:none!important; }
+    input::placeholder{ color: rgba(255,255,255,0.32); }
+    .focus-white:focus { color:#fff; }
     @media (max-width:920px){
       .main{ flex-direction:column; padding:12px; padding-top: calc(var(--height-top) + 12px); }
       .sidebar{ width:100%; min-width:unset; height:360px; }
       .player-area{ min-height:280px; }
       .placeholder-inner { width:calc(100% - 48px); }
-      /* move small player up a bit to avoid covering controls on tiny screens */
       #hiddenTwitchContainer { left:8px; bottom:8px; width:160px; height:160px; }
-      #hiddenToggle { display:none; } /* hide toggle on small screens to avoid UI overlap */
     }
-
-    /* placeholders for empty states when iframe present but we still want quick-change */
-    .hidden{ display:none!important; }
-    input::placeholder{ color: rgba(255,255,255,0.32); }
-    .focus-white:focus { color:#fff; }
   </style>
 
-  <!-- Twitch Embed SDK (used as primary API for controlling a hidden player where possible) -->
   <script src="https://embed.twitch.tv/embed/v1.js"></script>
 </head>
 <body>
@@ -306,311 +230,250 @@
     <div class="left">
       <svg class="menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="#cfcfcf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="right">
-      <!-- intentionally left empty to keep the topbar clean -->
-    </div>
+    <div class="right"></div>
   </div>
 
   <main class="main">
     <section class="player-area" aria-label="Stream player area">
-      <!-- initial placeholder: big box with input that looks like the provided image -->
-      <div id="playerPlaceholder" class="placeholder" aria-hidden="false">
-        <div class="placeholder-inner" role="form" aria-label="Load Kick stream">
-          <div class="placeholder-label">What's the Kick channel?</div>
-
-          <div class="big-input-tray">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div class="big-input-wrap" style="flex:1;">
-                <input id="playerBigInput" class="big-input focus-white" placeholder="e.g. crazymangovr" aria-label="Kick username" />
-              </div>
-              <button id="playerBigSubmit" class="submit-btn" aria-label="Load Kick stream">Load</button>
-            </div>
-            <div class="big-underline" aria-hidden="true"></div>
-          </div>
-        </div>
+      <!-- visible Twitch video container (initial entry point). When user presses Play, we'll swap to Kick -->
+      <div id="twitchVisibleWrap" style="width:100%;height:100%;display:flex;align-items:stretch;justify-content:stretch;">
+        <!-- Twitch player will be created into this div by the SDK when a Twitch channel is set to play -->
+        <div id="twitchVisiblePlayer" style="width:100%;height:100%;"></div>
       </div>
 
-      <!-- iframe container (hidden until we load source) -->
-      <div id="playerFrameWrap" class="player-iframe hidden" style="width:100%;height:100%;">
+      <!-- Kick player iframe container (hidden until we decide to show Kick as main) -->
+      <div id="kickFrameWrap" class="player-iframe hidden" style="width:100%;height:100%;">
         <iframe id="kickEmbed" src="" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" title="Kick player" style="width:100%;height:100%;border:0"></iframe>
       </div>
 
-      <!-- mini controls that show after load for quick swap -->
-      <div id="playerMini" class="mini-controls hidden" aria-hidden="true">
-        <input id="playerMiniInput" placeholder="Change Kick username" />
-        <button id="playerMiniLoad">↻</button>
-        <button id="playerMiniClear" title="Clear Kick" aria-label="Clear Kick">✕</button>
+      <!-- Controls overlay for user to choose channels / swap manually -->
+      <div class="mini-controls" style="right:12px; left:auto;">
+        <input id="twitchVideoInput" placeholder="Twitch channel (video) e.g. xqc" />
+        <input id="kickInputSmall" placeholder="Kick channel e.g. trainwreckstv" />
+        <button id="createTwitchBtn">Load Twitch</button>
       </div>
     </section>
 
     <aside class="sidebar" aria-label="Chat area">
       <div class="header">Stream Chat</div>
 
-      <!-- chat placeholder similar style -->
       <div id="chatPlaceholder" class="chat-placeholder" aria-hidden="false">
         <div class="chat-input">
-          <div style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:6px;">Twitch channel</div>
-          <input id="chatBigInput" class="field focus-white" placeholder="e.g. crazymangovr" aria-label="Twitch streamer" />
+          <div style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:6px;">Twitch username (chat)</div>
+          <input id="chatBigInput" class="field focus-white" placeholder="e.g. xqc" aria-label="Twitch username" />
           <div class="underline" aria-hidden="true"></div>
         </div>
         <button id="chatBigSubmit" class="submit-btn" aria-label="Load Twitch chat">Load</button>
       </div>
 
-      <!-- chat iframe container -->
       <div id="chatFrameWrap" class="chat-area hidden" aria-hidden="true">
         <iframe id="twitchChat" class="chat-iframe" src="" title="Twitch chat"></iframe>
-      </div>
-
-      <!-- mini controls for chat -->
-      <div id="chatMini" class="mini-controls hidden" aria-hidden="true" style="top:8px; right:8px; left:auto;">
-        <input id="chatMiniInput" placeholder="Change Twitch username" />
-        <button id="chatMiniLoad">↻</button>
-        <button id="chatMiniClear" title="Clear Twitch" aria-label="Clear Twitch">✕</button>
       </div>
     </aside>
   </main>
 
-  <!-- Visible small Twitch player container to satisfy Twitch embed requirements.
-       It's initially hidden and only shown when the user triggers loading Twitch audio. -->
+  <!-- Visible small Twitch player container to keep Twitch embed 'playing' in the viewport if needed -->
   <div id="hiddenTwitchContainer" class="minimal" aria-hidden="true" role="region" aria-label="Hidden Twitch audio player">
     <div id="hiddenTwitchPlayer" style="width:100%;height:100%;"></div>
   </div>
-  <button id="hiddenToggle" title="Show/Hide small Twitch player">Audio</button>
 
   <script>
-    // localStorage keys
-    const LS_KICK_KEY = 'streamViewer.kickUser';
+    // keys
     const LS_TWITCH_KEY = 'streamViewer.twitchUser';
+    const LS_KICK_KEY = 'streamViewer.kickUser';
 
-    // Hidden Twitch player reference (SDK or iframe fallback)
-    let hiddenTwitchPlayer = null;
-    let hiddenTwitchIsSDK = false;
+    // SDK players
+    let visibleTwitchPlayerSDK = null;     // SDK player in main view
+    let hiddenTwitchPlayerSDK = null;      // SDK player kept small in corner (to satisfy embed policy if needed)
+    let usingSDK = !!(window.Twitch && window.Twitch.Player);
 
-    // Helper: show/hide elements
-    function show(el){ el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); }
-    function hide(el){ el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
+    // helper show/hide
+    const show = el => el.classList.remove('hidden');
+    const hide = el => el.classList.add('hidden');
 
-    // Persist helpers
-    function saveKickUser(user) {
-      if(user) localStorage.setItem(LS_KICK_KEY, user);
-      else localStorage.removeItem(LS_KICK_KEY);
+    // create/update visible Twitch SDK player in main area
+    function createVisibleTwitch(twitchUser) {
+      if(!twitchUser) return;
+      // destroy existing visible SDK player if present
+      try {
+        if(visibleTwitchPlayerSDK && typeof visibleTwitchPlayerSDK.remove === 'function') {
+          visibleTwitchPlayerSDK.remove();
+          visibleTwitchPlayerSDK = null;
+        }
+      } catch(e){ console.warn(e); }
+
+      if(usingSDK && window.Twitch && window.Twitch.Player) {
+        visibleTwitchPlayerSDK = new Twitch.Player('twitchVisiblePlayer', {
+          channel: twitchUser,
+          width: '100%',
+          height: '100%',
+          // autoplay: false -- user must click play; we want them to click
+        });
+
+        // Listen for play event. When user clicks Play, Twitch.Player.PLAY is fired.
+        try {
+          visibleTwitchPlayerSDK.addEventListener(Twitch.Player.PLAY, onTwitchUserPlayed);
+        } catch(e) {
+          // Some SDK variants use lowercase strings - add fallback
+          try { visibleTwitchPlayerSDK.addEventListener('play', onTwitchUserPlayed); } catch(err){ console.warn(err); }
+        }
+      } else {
+        // Fallback: iframe embed (will show native controls)
+        const parent = encodeURIComponent(location.hostname);
+        const iframeSrc = `https://player.twitch.tv/?channel=${encodeURIComponent(twitchUser)}&parent=${parent}`;
+        const container = document.getElementById('twitchVisiblePlayer');
+        container.innerHTML = `<iframe id="twitchVisibleIframe" src="${iframeSrc}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen"></iframe>`;
+        // For iframe fallback we cannot reliably detect "play" event cross-origin.
+        // We will attach a click handler overlay to detect the user's manual click as a gesture:
+        attachClickGestureDetector(container, twitchUser);
+      }
     }
-    function saveTwitchUser(user) {
-      if(user) localStorage.setItem(LS_TWITCH_KEY, user);
-      else localStorage.removeItem(LS_TWITCH_KEY);
+
+    // Attach an overlay button to detect the user's click gesture on iframe fallback
+    function attachClickGestureDetector(container, twitchUser) {
+      // remove previous overlay if any
+      const prev = container.querySelector('.clickGestureOverlay');
+      if(prev) prev.remove();
+      const overlay = document.createElement('div');
+      overlay.className = 'clickGestureOverlay';
+      overlay.style.position = 'absolute';
+      overlay.style.left = '0';
+      overlay.style.top = '0';
+      overlay.style.right = '0';
+      overlay.style.bottom = '0';
+      overlay.style.cursor = 'pointer';
+      overlay.style.zIndex = '1000';
+      overlay.style.background = 'transparent';
+      overlay.title = 'Click to play and switch to Kick';
+      overlay.addEventListener('click', function handler(e){
+        // remove overlay so clicks go to the iframe afterwards
+        overlay.removeEventListener('click', handler);
+        overlay.remove();
+        // treat this as user gesture -> trigger the same handler as a PLAY event
+        onTwitchUserPlayed({channel: twitchUser});
+      });
+      container.appendChild(overlay);
     }
 
-    // Create or update the hidden Twitch player that will attempt to play audio.
-    // Note: Twitch requires the embed to be visible and meet minimum size/viewport requirements.
-    // We therefore create a small visible player (>= 200x200) and keep it low-visual-impact (low opacity).
-    function createOrUpdateHiddenTwitch(twitchUser) {
+    // Called when user clicks Play on visible Twitch player (or our overlay detects a click on iframe fallback)
+    function onTwitchUserPlayed(ev) {
+      // ev may be an event object or (for overlay) an object containing channel
+      // We'll read twitch channel from the small input if available
+      const twitchUser = document.getElementById('twitchVideoInput').value.trim() || localStorage.getItem(LS_TWITCH_KEY);
       if(!twitchUser) return;
 
-      // Reveal the small container (must be visible in viewport for Twitch autoplay)
+      // 1) create small visible Twitch player in corner to "keep" the Twitch embed present in viewport (satisfy Twitch)
+      createOrUpdateHiddenTwitch(twitchUser);
+
+      // 2) hide/destroy the big visible Twitch player area to reduce bandwidth/visuals:
+      //    we keep the small visible Twitch player running (or attempt to)
+      try {
+        if(visibleTwitchPlayerSDK && typeof visibleTwitchPlayerSDK.remove === 'function') {
+          visibleTwitchPlayerSDK.remove();
+          visibleTwitchPlayerSDK = null;
+        } else {
+          // remove iframe if present
+          const ifr = document.getElementById('twitchVisibleIframe');
+          if(ifr) ifr.remove();
+        }
+      } catch(e){ console.warn(e); }
+
+      // hide visible wrap and reveal kick area
+      const visibleWrap = document.getElementById('twitchVisibleWrap');
+      if(visibleWrap) visibleWrap.style.display = 'none';
+      const kickWrap = document.getElementById('kickFrameWrap');
+      kickWrap.style.display = 'block';
+      kickWrap.classList.remove('hidden');
+
+      // 3) load Kick as the visible main player and try to start audio (user gesture already happened)
+      const kickUser = document.getElementById('kickInputSmall').value.trim() || localStorage.getItem(LS_KICK_KEY);
+      if(kickUser) {
+        const kickFrame = document.getElementById('kickEmbed');
+        // Kick player should respect autoplay because user just interacted
+        kickFrame.src = `https://player.kick.com/${encodeURIComponent(kickUser)}`;
+        try { localStorage.setItem(LS_KICK_KEY, kickUser); } catch(e){/*ignore*/}
+      }
+    }
+
+    // Create or update a small visible Twitch player in the corner (required visible size)
+    function createOrUpdateHiddenTwitch(twitchUser) {
+      if(!twitchUser) return;
       const container = document.getElementById('hiddenTwitchContainer');
-      const toggle = document.getElementById('hiddenToggle');
+      const playerDiv = document.getElementById('hiddenTwitchPlayer');
       container.style.display = 'flex';
-      toggle.style.display = 'inline-block';
-      container.setAttribute('aria-hidden','false');
+      container.classList.add('minimal');
 
-      // If SDK available, prefer it for programmatic control
-      if(window.Twitch && window.Twitch.Player) {
+      // If SDK available, prefer it
+      if(usingSDK && window.Twitch && window.Twitch.Player) {
         try {
-          // remove existing SDK player if present
-          if(hiddenTwitchPlayer && hiddenTwitchIsSDK) {
-            try { hiddenTwitchPlayer.remove(); } catch(e){ /* ignore */ }
-            hiddenTwitchPlayer = null;
+          if(hiddenTwitchPlayerSDK && typeof hiddenTwitchPlayerSDK.remove === 'function') {
+            hiddenTwitchPlayerSDK.remove();
+            hiddenTwitchPlayerSDK = null;
           }
-
-          hiddenTwitchPlayer = new Twitch.Player('hiddenTwitchPlayer', {
+          hiddenTwitchPlayerSDK = new Twitch.Player('hiddenTwitchPlayer', {
             channel: twitchUser,
-            width: document.getElementById('hiddenTwitchContainer').clientWidth,
-            height: document.getElementById('hiddenTwitchContainer').clientHeight,
+            width: container.clientWidth,
+            height: container.clientHeight,
             autoplay: true
           });
-          hiddenTwitchIsSDK = true;
-
-          // Try to unmute and set volume — may be blocked by browser autoplay policies.
+          // try to unmute/set volume (may be blocked depending on browser)
           setTimeout(()=> {
             try {
-              if(typeof hiddenTwitchPlayer.setMuted === 'function') hiddenTwitchPlayer.setMuted(false);
-              if(typeof hiddenTwitchPlayer.setVolume === 'function') hiddenTwitchPlayer.setVolume(1);
-              // attempt to set low quality if supported by SDK (not guaranteed)
-              if(typeof hiddenTwitchPlayer.setQuality === 'function') {
-                try { hiddenTwitchPlayer.setQuality('160p'); } catch(e){ /* ignore */ }
-              }
-            } catch(e){ console.warn('hidden twitch sdk control failed', e); }
-          }, 250);
+              if(typeof hiddenTwitchPlayerSDK.setMuted === 'function') hiddenTwitchPlayerSDK.setMuted(false);
+              if(typeof hiddenTwitchPlayerSDK.setVolume === 'function') hiddenTwitchPlayerSDK.setVolume(1);
+            } catch(e){ console.warn('hidden sdk control failed', e); }
+          }, 300);
+          try { localStorage.setItem(LS_TWITCH_KEY, twitchUser); } catch(e){}
           return;
-        } catch(e) {
-          console.warn('Twitch SDK error while creating hidden player, falling back to iframe', e);
-          // fallthrough to iframe fallback
+        } catch(err) {
+          console.warn('SDK hidden player failed, falling back to iframe', err);
         }
       }
 
-      // Fallback: create a visible iframe with required parent param and autoplay
+      // Fallback to iframe (visible)
       try {
         const parent = encodeURIComponent(location.hostname);
-        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(twitchUser)}&parent=${parent}&autoplay=true`;
-        const playerDiv = document.getElementById('hiddenTwitchPlayer');
-        playerDiv.innerHTML = `<iframe id="hiddenTwitchIframe" src="${src}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen"></iframe>`;
-        hiddenTwitchPlayer = document.getElementById('hiddenTwitchIframe');
-        hiddenTwitchIsSDK = false;
-      } catch(e) {
-        console.warn('Could not create visible Twitch iframe', e);
-      }
+        playerDiv.innerHTML = `<iframe id="hiddenTwitchIframe" src="https://player.twitch.tv/?channel=${encodeURIComponent(twitchUser)}&parent=${parent}&autoplay=true" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen"></iframe>`;
+        try { localStorage.setItem(LS_TWITCH_KEY, twitchUser); } catch(e){}
+      } catch(e){ console.warn('hidden twitch iframe creation failed', e); }
     }
 
-    // Destroy hidden twitch player
-    function destroyHiddenTwitch() {
-      try {
-        if(hiddenTwitchIsSDK && hiddenTwitchPlayer && typeof hiddenTwitchPlayer.remove === 'function') {
-          hiddenTwitchPlayer.remove();
-        } else {
-          const playerDiv = document.getElementById('hiddenTwitchPlayer');
-          playerDiv.innerHTML = '';
-        }
-      } catch(e) { /* ignore */ }
-      hiddenTwitchPlayer = null;
-      hiddenTwitchIsSDK = false;
-      const container = document.getElementById('hiddenTwitchContainer');
-      container.style.display = 'none';
-      container.setAttribute('aria-hidden','true');
-      document.getElementById('hiddenToggle').style.display = 'none';
-    }
-
-    // Kick load from big placeholder
-    function loadKickFromBig() {
-      const user = document.getElementById('playerBigInput').value.trim();
-      const frame = document.getElementById('kickEmbed');
-      if(!user) return;
-      frame.src = 'https://player.kick.com/' + encodeURIComponent(user);
-      saveKickUser(user);
-      show(document.getElementById('playerFrameWrap'));
-      show(document.getElementById('playerMini'));
-      hide(document.getElementById('playerPlaceholder'));
-      document.getElementById('playerMiniInput').value = user;
-    }
-
-    // Twitch chat load from panel
-    // Additionally: on explicit user Load action we will create the visible small Twitch player (audio) too.
-    function loadTwitchFromBig() {
+    // Kick/Chat load helpers for manual usage
+    function loadChat() {
       const user = document.getElementById('chatBigInput').value.trim();
-      const frame = document.getElementById('twitchChat');
       if(!user) return;
-
       const parent = encodeURIComponent(location.hostname);
-      frame.src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + parent;
-      saveTwitchUser(user);
-      show(document.getElementById('chatFrameWrap'));
-      show(document.getElementById('chatMini'));
-      hide(document.getElementById('chatPlaceholder'));
-      document.getElementById('chatMiniInput').value = user;
-
-      // Create/update visible small Twitch player (user gesture ensures higher chance of autoplay)
-      try {
-        createOrUpdateHiddenTwitch(user);
-      } catch (err) {
-        console.warn('hidden twitch creation failed', err);
-      }
+      document.getElementById('twitchChat').src = `https://www.twitch.tv/embed/${encodeURIComponent(user)}/chat?darkpopout&parent=${parent}`;
+      document.getElementById('chatFrameWrap').classList.remove('hidden');
+      try { localStorage.setItem(LS_TWITCH_KEY, user); } catch(e){}
     }
 
-    // Mini control re-load handlers
-    function loadKickFromMini(){
-      const user = document.getElementById('playerMiniInput').value.trim();
-      if(!user) return;
-      document.getElementById('kickEmbed').src = 'https://player.kick.com/' + encodeURIComponent(user);
-      saveKickUser(user);
-    }
-    function loadTwitchFromMini(){
-      const user = document.getElementById('chatMiniInput').value.trim();
-      if(!user) return;
-      document.getElementById('twitchChat').src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + encodeURIComponent(location.hostname);
-      saveTwitchUser(user);
-
-      // update visible small audio player (user gesture)
-      try { createOrUpdateHiddenTwitch(user); } catch (err) { console.warn(err); }
-    }
-
-    // Clear handlers (remove from localStorage and restore placeholder)
-    function clearKick() {
-      document.getElementById('kickEmbed').src = '';
-      saveKickUser(null);
-      hide(document.getElementById('playerFrameWrap'));
-      hide(document.getElementById('playerMini'));
-      show(document.getElementById('playerPlaceholder'));
-      document.getElementById('playerBigInput').value = '';
-      document.getElementById('playerMiniInput').value = '';
-    }
-    function clearTwitch() {
-      document.getElementById('twitchChat').src = '';
-      saveTwitchUser(null);
-      hide(document.getElementById('chatFrameWrap'));
-      hide(document.getElementById('chatMini'));
-      show(document.getElementById('chatPlaceholder'));
-      document.getElementById('chatBigInput').value = '';
-      document.getElementById('chatMiniInput').value = '';
-
-      // destroy visible twitch audio player when user clears
-      destroyHiddenTwitch();
-    }
-
-    // Toggle the small visible hidden player (user can reveal it to unmute/inspect)
-    document.getElementById('hiddenToggle').addEventListener('click', function(){
-      const container = document.getElementById('hiddenTwitchContainer');
-      if(container.style.display === 'flex') {
-        container.classList.toggle('minimal'); // toggles opacity
-      } else {
-        // show it
-        container.style.display = 'flex';
-        container.classList.add('minimal');
-        this.style.display = 'inline-block';
-      }
+    // Wire basic controls
+    document.getElementById('createTwitchBtn').addEventListener('click', function(){
+      const tw = document.getElementById('twitchVideoInput').value.trim();
+      if(!tw) return alert('Enter a Twitch channel to load the visible player first (so the user can click Play).');
+      try { localStorage.setItem(LS_TWITCH_KEY, tw); } catch(e){}
+      createVisibleTwitch(tw);
+      // ensure visible wrap shown (in case it was hidden from prior swap)
+      document.getElementById('twitchVisibleWrap').style.display = 'flex';
+      document.getElementById('kickFrameWrap').style.display = 'none';
     });
 
-    // Wire up buttons & Enter behavior
-    document.getElementById('playerBigSubmit').addEventListener('click', loadKickFromBig);
-    document.getElementById('chatBigSubmit').addEventListener('click', loadTwitchFromBig);
-    document.getElementById('playerMiniLoad').addEventListener('click', loadKickFromMini);
-    document.getElementById('chatMiniLoad').addEventListener('click', loadTwitchFromMini);
-    document.getElementById('playerMiniClear').addEventListener('click', clearKick);
-    document.getElementById('chatMiniClear').addEventListener('click', clearTwitch);
+    document.getElementById('chatBigSubmit').addEventListener('click', loadChat);
 
-    document.getElementById('playerBigInput').addEventListener('keydown', function(e){
-      if(e.key === 'Enter') loadKickFromBig();
-    });
-    document.getElementById('chatBigInput').addEventListener('keydown', function(e){
-      if(e.key === 'Enter') loadTwitchFromBig();
-    });
-    document.getElementById('playerMiniInput').addEventListener('keydown', function(e){
-      if(e.key === 'Enter') loadKickFromMini();
-    });
-    document.getElementById('chatMiniInput').addEventListener('keydown', function(e){
-      if(e.key === 'Enter') loadTwitchFromMini();
-    });
-
-    // On page load: if localStorage has saved values, prefill and auto-load
+    // Reload the small hidden player from a saved value if page loaded with a saved twitch
     window.addEventListener('DOMContentLoaded', function(){
-      try {
-        const savedKick = localStorage.getItem(LS_KICK_KEY);
-        const savedTwitch = localStorage.getItem(LS_TWITCH_KEY);
-
-        if(savedKick) {
-          document.getElementById('playerBigInput').value = savedKick;
-          loadKickFromBig();
-        }
-
-        if(savedTwitch) {
-          document.getElementById('chatBigInput').value = savedTwitch;
-          // load chat and create visible small twitch player (may still be blocked by autoplay policy,
-          // but the container will be visible and sized to meet Twitch's embed requirements)
-          loadTwitchFromBig();
-        }
-      } catch (err) {
-        console.warn('localStorage unavailable', err);
+      const savedTwitch = localStorage.getItem(LS_TWITCH_KEY);
+      const savedKick = localStorage.getItem(LS_KICK_KEY);
+      if(savedTwitch) {
+        // create visible twitch player so user can click play (prefer to have them click)
+        document.getElementById('twitchVideoInput').value = savedTwitch;
+        createVisibleTwitch(savedTwitch);
       }
+      if(savedKick) document.getElementById('kickInputSmall').value = savedKick;
+      // If you prefer auto-switching to Kick when both exist, you can call createOrUpdateHiddenTwitch + load kick here,
+      // but be mindful of autoplay policies; we keep it user-gesture driven.
     });
   </script>
-
 </body>
 </html>
