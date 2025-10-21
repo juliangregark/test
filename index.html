@@ -254,6 +254,9 @@
     input::placeholder{ color: rgba(255,255,255,0.32); }
     .focus-white:focus { color:#fff; }
   </style>
+
+  <!-- Twitch Embed SDK (used as primary API for controlling a hidden player where possible) -->
+  <script src="https://embed.twitch.tv/embed/v1.js"></script>
 </head>
 <body>
 
@@ -304,8 +307,8 @@
       <!-- chat placeholder similar style -->
       <div id="chatPlaceholder" class="chat-placeholder" aria-hidden="false">
         <div class="chat-input">
-          <div style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:6px;">Twitch username</div>
-          <input id="chatBigInput" class="field focus-white" placeholder="e.g. crazymangovr" aria-label="Twitch username" />
+          <div style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:6px;">Twitch channel</div>
+          <input id="chatBigInput" class="field focus-white" placeholder="e.g. crazymangovr" aria-label="Twitch streamer" />
           <div class="underline" aria-hidden="true"></div>
         </div>
         <button id="chatBigSubmit" class="submit-btn" aria-label="Load Twitch chat">Load</button>
@@ -325,10 +328,20 @@
     </aside>
   </main>
 
+  <!-- Hidden container used to host a tiny Twitch player that will only serve audio (if browser allows) -->
+  <div id="hiddenTwitchContainer" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden; pointer-events:none;">
+    <!-- Twitch Player will be created here when needed -->
+    <div id="hiddenTwitchPlayer"></div>
+  </div>
+
   <script>
     // localStorage keys
     const LS_KICK_KEY = 'streamViewer.kickUser';
     const LS_TWITCH_KEY = 'streamViewer.twitchUser';
+
+    // Hidden Twitch player reference (SDK or iframe fallback)
+    let hiddenTwitchPlayer = null;
+    let hiddenTwitchIsSDK = false;
 
     // Helper: show/hide elements
     function show(el){ el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); }
@@ -344,6 +357,83 @@
       else localStorage.removeItem(LS_TWITCH_KEY);
     }
 
+    // Create or update the hidden Twitch player that will attempt to play audio.
+    // Important: modern browsers block autoplay with sound unless there was a user gesture.
+    // We therefore call this on explicit Load button clicks (user gesture) to increase chance it will play.
+    function createOrUpdateHiddenTwitch(twitchUser) {
+      if(!twitchUser) return;
+
+      // If SDK is available, prefer it for programmatic control
+      if(window.Twitch && window.Twitch.Player) {
+        try {
+          // If a player already exists, destroy it to re-create with new channel
+          if(hiddenTwitchPlayer && hiddenTwitchIsSDK) {
+            try { hiddenTwitchPlayer.remove(); } catch(e){ /* ignore */ }
+            hiddenTwitchPlayer = null;
+          }
+
+          // create a tiny player - width/height 1 so it's effectively invisible
+          // Note: some SDK versions may require a parent param; the SDK uses the embed script
+          hiddenTwitchPlayer = new Twitch.Player('hiddenTwitchPlayer', {
+            channel: twitchUser,
+            width: 1,
+            height: 1,
+            autoplay: true,
+            // muted: false  // we will attempt to unmute below
+          });
+          hiddenTwitchIsSDK = true;
+
+          // attempt to unmute and set volume (may fail if browser blocks autoplay with sound)
+          try {
+            if(typeof hiddenTwitchPlayer.setMuted === 'function') {
+              hiddenTwitchPlayer.setMuted(false);
+            }
+            if(typeof hiddenTwitchPlayer.setVolume === 'function') {
+              hiddenTwitchPlayer.setVolume(1); // max volume (0..1)
+            }
+            // attempt to set a lower quality if API supports setQuality (not guaranteed)
+            if(typeof hiddenTwitchPlayer.setQuality === 'function') {
+              try { hiddenTwitchPlayer.setQuality('160p'); } catch(e){ /* ignore */ }
+            }
+          } catch(e) {
+            // no-op: if browser prevents autoplay with audio, the user will need to interact (click)
+            console.warn('Could not programmatically unmute/set volume on hidden Twitch player', e);
+          }
+          return;
+        } catch(e) {
+          console.warn('Twitch SDK error while creating hidden player, falling back to iframe', e);
+          // fallthrough to iframe fallback
+        }
+      }
+
+      // Fallback: create a tiny iframe to player.twitch.tv (autoplay may still be blocked)
+      try {
+        const parent = encodeURIComponent(location.hostname);
+        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(twitchUser)}&parent=${parent}&autoplay=true`;
+        // create iframe element inside hidden container
+        const container = document.getElementById('hiddenTwitchContainer');
+        container.innerHTML = `<iframe id="hiddenTwitchIframe" src="${src}" width="1" height="1" frameborder="0" allow="autoplay; fullscreen"></iframe>`;
+        hiddenTwitchPlayer = document.getElementById('hiddenTwitchIframe');
+        hiddenTwitchIsSDK = false;
+      } catch(e) {
+        console.warn('Could not create hidden Twitch iframe', e);
+      }
+    }
+
+    // Destroy hidden twitch player
+    function destroyHiddenTwitch() {
+      try {
+        if(hiddenTwitchIsSDK && hiddenTwitchPlayer && typeof hiddenTwitchPlayer.remove === 'function') {
+          hiddenTwitchPlayer.remove();
+        } else {
+          const container = document.getElementById('hiddenTwitchContainer');
+          container.innerHTML = '<div id="hiddenTwitchPlayer"></div>';
+        }
+      } catch(e) { /* ignore */ }
+      hiddenTwitchPlayer = null;
+      hiddenTwitchIsSDK = false;
+    }
+
     // Kick load from big placeholder
     function loadKickFromBig() {
       const user = document.getElementById('playerBigInput').value.trim();
@@ -354,15 +444,16 @@
       show(document.getElementById('playerFrameWrap'));
       show(document.getElementById('playerMini'));
       hide(document.getElementById('playerPlaceholder'));
-      // populate mini input for quick changes
       document.getElementById('playerMiniInput').value = user;
     }
 
     // Twitch chat load from panel
+    // Additionally: on explicit user Load action we will create the hidden Twitch player (audio) too.
     function loadTwitchFromBig() {
       const user = document.getElementById('chatBigInput').value.trim();
       const frame = document.getElementById('twitchChat');
       if(!user) return;
+
       const parent = encodeURIComponent(location.hostname);
       frame.src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + parent;
       saveTwitchUser(user);
@@ -370,6 +461,13 @@
       show(document.getElementById('chatMini'));
       hide(document.getElementById('chatPlaceholder'));
       document.getElementById('chatMiniInput').value = user;
+
+      // Create/update hidden Twitch player to try to play audio (run on this user gesture)
+      try {
+        createOrUpdateHiddenTwitch(user);
+      } catch (err) {
+        console.warn('hidden twitch creation failed', err);
+      }
     }
 
     // Mini control re-load handlers
@@ -378,18 +476,19 @@
       if(!user) return;
       document.getElementById('kickEmbed').src = 'https://player.kick.com/' + encodeURIComponent(user);
       saveKickUser(user);
-      // keep state shown
     }
     function loadTwitchFromMini(){
       const user = document.getElementById('chatMiniInput').value.trim();
       if(!user) return;
       document.getElementById('twitchChat').src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + encodeURIComponent(location.hostname);
       saveTwitchUser(user);
+
+      // update hidden audio player when user re-loads (user gesture)
+      try { createOrUpdateHiddenTwitch(user); } catch (err) { console.warn(err); }
     }
 
     // Clear handlers (remove from localStorage and restore placeholder)
     function clearKick() {
-      // stop iframe and show placeholder
       document.getElementById('kickEmbed').src = '';
       saveKickUser(null);
       hide(document.getElementById('playerFrameWrap'));
@@ -406,6 +505,9 @@
       show(document.getElementById('chatPlaceholder'));
       document.getElementById('chatBigInput').value = '';
       document.getElementById('chatMiniInput').value = '';
+
+      // destroy hidden twitch audio player when user clears
+      destroyHiddenTwitch();
     }
 
     // Wire up buttons & Enter behavior
@@ -443,7 +545,7 @@
 
         if(savedTwitch) {
           document.getElementById('chatBigInput').value = savedTwitch;
-          // load immediately
+          // load immediately and attempt to create hidden audio player
           loadTwitchFromBig();
         }
       } catch (err) {
