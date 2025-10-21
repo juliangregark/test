@@ -276,7 +276,7 @@
           <div class="big-input-tray">
             <div style="display:flex; align-items:center; gap:8px;">
               <div class="big-input-wrap" style="flex:1;">
-                <input id="playerBigInput" class="big-input focus-white" placeholder="crazymangovr" aria-label="Kick username" />
+                <input id="playerBigInput" class="big-input focus-white" placeholder="e.g. crazymangovr" aria-label="Kick username" />
               </div>
               <button id="playerBigSubmit" class="submit-btn" aria-label="Load Kick stream">Load</button>
             </div>
@@ -304,7 +304,7 @@
       <div id="chatPlaceholder" class="chat-placeholder" aria-hidden="false">
         <div class="chat-input">
           <div style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:6px;">Twitch username</div>
-          <input id="chatBigInput" class="field focus-white" placeholder="crazymangovr" aria-label="Twitch username" />
+          <input id="chatBigInput" class="field focus-white" placeholder="e.g. crazymangovr" aria-label="Twitch username" />
           <div class="underline" aria-hidden="true"></div>
         </div>
         <button id="chatBigSubmit" class="submit-btn" aria-label="Load Twitch chat">Load</button>
@@ -385,11 +385,6 @@
       if(e.key === 'Enter') loadTwitchFromMini();
     });
 
-    // If you want to preset values for testing, uncomment:
-    // document.getElementById('playerBigInput').value = 'trainwreckstv';
-    // document.getElementById('chatBigInput').value = 'xqc';
-    // Optionally auto-load on page open (commented):
-    // loadKickFromBig(); loadTwitchFromBig();
   </script>
 
 </body>
