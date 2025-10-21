@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Twitch Chat + Kick Stream Embed</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e1e;
+      color: #fff;
+      padding: 20px;
+    }
+    input {
+      margin: 5px;
+      padding: 8px;
+    }
+    iframe {
+      border: none;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .embed-box {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Stream Viewer</h1>
+
+  <label for="twitchUser">Twitch Username:</label>
+  <input type="text" id="twitchUser" placeholder="e.g. xqc" />
+
+  <label for="kickUser">Kick Username:</label>
+  <input type="text" id="kickUser" placeholder="e.g. trainwreckstv" />
+
+  <button onclick="loadEmbeds()">Load</button>
+
+  <div class="container">
+    <div class="embed-box">
+      <h2>Kick Stream</h2>
+      <iframe id="kickEmbed" width="100%" height="480" allowfullscreen></iframe>
+    </div>
+    <div class="embed-box">
+      <h2>Twitch Chat</h2>
+      <iframe id="twitchChat" width="100%" height="480"></iframe>
+    </div>
+  </div>
+
+  <script>
+    function loadEmbeds() {
+      const twitchUser = document.getElementById('twitchUser').value.trim();
+      const kickUser = document.getElementById('kickUser').value.trim();
+
+      if (kickUser) {
+        document.getElementById('kickEmbed').src = `https://kick.com/embed/${kickUser}`;
+      }
+
+      if (twitchUser) {
+        document.getElementById('twitchChat').src = `https://www.twitch.tv/embed/${twitchUser}/chat?parent=${location.hostname}`;
+      }
+    }
+  </script>
+
+</body>
+</html>
