@@ -6,23 +6,26 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root{
-      --bg: #141414;
-      --panel: #1f1f1f;
-      --muted: #bdbdbd;
-      --accent: #2f2f2f;
-      --height-top: 60px;
+      --bg: #111111;
+      --panel: #0f0f0f;
+      --muted: #cfcfcf;
+      --accent-blue: #2f80ed;
+      --height-top: 56px;
       --chat-width: 360px;
+      --placeholder-bg: rgba(255,255,255,0.02);
+      --placeholder-inner: rgba(255,255,255,0.01);
+      --input-height: 56px;
     }
 
+    *{box-sizing:border-box}
     html,body{
       height:100%;
       margin:0;
       padding:0;
       background:var(--bg);
       color:#fff;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
       -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
     }
 
     /* Topbar */
@@ -31,9 +34,8 @@
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding:0 16px;
-      background:linear-gradient(180deg,#1a1a1a,#151515);
+      padding:0 12px;
+      background:linear-gradient(180deg,#131313,#0f0f0f);
       border-bottom:1px solid rgba(255,255,255,0.03);
       position:fixed;
       left:0;
@@ -41,63 +43,132 @@
       top:0;
       z-index:1000;
     }
-
-    .topbar .left,
-    .topbar .right{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    /* right area: inputs + watch button */
-    .controls{
-      gap:8px;
-      align-items:center;
-    }
-    .controls input{
-      height:34px;
-      padding:6px 10px;
-      border-radius:6px;
-      border:1px solid rgba(255,255,255,0.05);
-      background:var(--accent);
-      color:var(--muted);
-      font-size:13px;
-      min-width:120px;
-    }
-    .controls .watch{
-      height:34px;
-      padding:6px 12px;
-      border-radius:6px;
+    .menu-icon{ width:22px; height:22px; opacity:0.9; }
+    .watch-all{
+      background:var(--accent-blue);
+      color:#fff;
+      padding:8px 12px;
+      border-radius:8px;
       border:0;
-      background:#3b82f6;
-      color:white;
-      font-weight:600;
       cursor:pointer;
-      box-shadow:0 2px 6px rgba(0,0,0,0.4);
+      font-weight:600;
+      box-shadow:0 4px 12px rgba(47,128,237,0.12);
     }
 
-    /* Main layout */
+    /* Main */
     .main{
       display:flex;
       gap:16px;
       height: calc(100vh - var(--height-top));
       padding:16px;
       padding-top: calc(var(--height-top) + 16px);
-      box-sizing:border-box;
+    }
+
+    .player-area, .sidebar{
+      border-radius:8px;
+      overflow:hidden;
+      position:relative;
+      border:1px solid rgba(255,255,255,0.02);
+      background:linear-gradient(180deg,#0b0b0b,#010101);
     }
 
     .player-area{
       flex:1;
-      background: #000;
-      border-radius:6px;
-      overflow:hidden;
+      min-height: 420px;
       display:flex;
-      flex-direction:column;
-      position:relative;
+      align-items:stretch;
+      justify-content:stretch;
     }
 
-    /* Make the player fill the area */
-    .player-area iframe{
+    .sidebar{
+      width:var(--chat-width);
+      min-width:260px;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* Placeholder large panel that looks like image 4:
+       big inset rectangle with muted placeholder text and an underline */
+    .placeholder {
+      margin:18px;
+      flex:1;
+      border-radius:6px;
+      background: linear-gradient(180deg, var(--placeholder-bg), rgba(0,0,0,0.02));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      min-height: 320px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6) inset, 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    .placeholder-inner {
+      width:calc(100% - 120px);
+      max-width:920px;
+      background: var(--placeholder-inner);
+      padding:18px 18px 8px 18px;
+      border-radius:6px;
+      display:flex;
+      flex-direction:column;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+
+    .placeholder-label {
+      color: rgba(255,255,255,0.6);
+      font-size:16px;
+      margin-bottom:8px;
+    }
+
+    /* big, full-width input that visually looks like the provided "favorite movie" image */
+    .big-input-wrap {
+      display:block;
+      width:100%;
+      background:transparent;
+      padding:0;
+    }
+    .big-input {
+      width:100%;
+      height:var(--input-height);
+      border:0;
+      outline:0;
+      background:transparent;
+      color:var(--muted);
+      font-size:16px;
+      padding:12px 14px;
+      border-radius:4px;
+    }
+    /* the inner "tray" to simulate inset area with subtle shadow */
+    .big-input-tray {
+      background: rgba(0,0,0,0.15);
+      border-radius:4px;
+      padding:4px;
+      box-shadow: inset 0 6px 14px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.02);
+    }
+
+    /* underline accent under the input */
+    .big-underline {
+      height:6px;
+      margin-top:12px;
+      border-radius:4px;
+      background: linear-gradient(90deg, rgba(47,128,237,0.95) 0%, rgba(124,58,237,0.9) 100%);
+      opacity:0.9;
+    }
+
+    /* small inline submit button inside the placeholder's right */
+    .submit-btn {
+      margin-left:12px;
+      background:var(--accent-blue);
+      color:#fff;
+      border:0;
+      padding:10px 14px;
+      font-size:16px;
+      border-radius:6px;
+      cursor:pointer;
+      box-shadow:0 6px 14px rgba(47,128,237,0.12);
+    }
+
+    /* After loading, iframe should occupy the same area */
+    .player-iframe, .chat-iframe {
       width:100%;
       height:100%;
       border:0;
@@ -105,122 +176,236 @@
       background:#000;
     }
 
-    .sidebar{
-      width:var(--chat-width);
-      max-width:40%;
-      min-width:260px;
-      background:linear-gradient(180deg,#161616,#121212);
-      border-left:1px solid rgba(255,255,255,0.03);
+    /* Sidebar placeholder/header */
+    .sidebar .header {
+      padding:12px;
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      color:var(--muted);
+      font-weight:600;
+    }
+    .sidebar .chat-placeholder {
+      margin:12px;
+      background:var(--placeholder-inner);
       border-radius:6px;
-      overflow:hidden;
+      padding:12px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chat-input {
+      flex:1;
       display:flex;
       flex-direction:column;
     }
-    .sidebar .title{
-      padding:12px;
-      font-weight:600;
-      color:var(--muted);
-      border-bottom:1px solid rgba(255,255,255,0.03);
-      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-    }
-    .chat-wrap{
-      flex:1;
-      background:transparent;
-      position:relative;
-    }
-    .chat-wrap iframe{
-      width:100%;
-      height:100%;
+    .chat-input .field {
       border:0;
       background:transparent;
+      padding:8px 6px;
+      color:var(--muted);
+      outline:0;
+    }
+    .chat-input .underline {
+      height:4px;
+      margin-top:8px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border-radius:3px;
     }
 
-    /* Responsive: stack on small screens */
-    @media (max-width:900px){
+    .chat-area {
+      flex:1;
+      margin:12px;
+      border-radius:6px;
+      overflow:hidden;
+      background: linear-gradient(180deg,#070707,#050505);
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    /* small overlay controls after load so people can change usernames */
+    .mini-controls {
+      position:absolute;
+      top:12px;
+      left:12px;
+      display:flex;
+      gap:8px;
+      z-index:40;
+      align-items:center;
+      background:rgba(0,0,0,0.35);
+      padding:6px;
+      border-radius:8px;
+      backdrop-filter: blur(4px);
+    }
+    .mini-controls input{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.04);
+      color:var(--muted);
+      padding:6px 8px;
+      border-radius:6px;
+      font-size:13px;
+    }
+    .mini-controls button{
+      background:transparent;
+      color:var(--muted);
+      border:1px solid rgba(255,255,255,0.04);
+      padding:6px 8px;
+      border-radius:6px;
+      cursor:pointer;
+    }
+
+    /* Responsive */
+    @media (max-width:920px){
       .main{ flex-direction:column; padding:12px; padding-top: calc(var(--height-top) + 12px); }
-      .sidebar{ width:100%; height:360px; border-left:0; margin-top:12px; border-radius:6px; }
-      .player-area{ height: calc(100vh - var(--height-top) - 12px - 360px); }
+      .sidebar{ width:100%; min-width:unset; height:360px; }
+      .player-area{ min-height:280px; }
+      .placeholder-inner { width:calc(100% - 48px); }
     }
 
-    /* small helper */
-    .muted{ color:var(--muted); font-size:13px; }
+    /* placeholders for empty states when iframe present but we still want quick-change */
+    .hidden{ display:none!important; }
+    input::placeholder{ color: rgba(255,255,255,0.32); }
+    .focus-white:focus { color:#fff; }
   </style>
 </head>
 <body>
 
   <div class="topbar" role="navigation" aria-label="Top bar">
     <div class="left">
-      <!-- simple menu icon -->
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.9"><path d="M3 6h18M3 12h18M3 18h18" stroke="#cfcfcf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="#cfcfcf" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-
     <div class="right">
-      <div class="controls" style="display:flex">
-        <input id="twitchUserTop" placeholder="Twitch username (e.g. crazymangovr)" aria-label="Twitch username" />
-        <input id="kickUserTop" placeholder="Kick username (e.g. crazymangovr)" aria-label="Kick username" />
-        <button class="watch" id="watchBtn">Watch</button>
-      </div>
+      <button id="watchAllBtn" class="watch-all" title="Load both panels">Watch All</button>
     </div>
   </div>
 
   <main class="main">
-    <section class="player-area" aria-label="Stream player">
-      <iframe id="kickEmbed" src="" allowfullscreen allow="autoplay; fullscreen; picture-in-picture"></iframe>
+    <section class="player-area" aria-label="Stream player area">
+      <!-- initial placeholder: big box with input that looks like the provided image -->
+      <div id="playerPlaceholder" class="placeholder" aria-hidden="false">
+        <div class="placeholder-inner" role="form" aria-label="Load Kick stream">
+          <div class="placeholder-label">What's the Kick channel?</div>
+
+          <div class="big-input-tray">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="big-input-wrap" style="flex:1;">
+                <input id="playerBigInput" class="big-input focus-white" placeholder="crazymangovr" aria-label="Kick username" />
+              </div>
+              <button id="playerBigSubmit" class="submit-btn" aria-label="Load Kick stream">Load</button>
+            </div>
+            <div class="big-underline" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- iframe container (hidden until we load source) -->
+      <div id="playerFrameWrap" class="player-iframe hidden" style="width:100%;height:100%;">
+        <iframe id="kickEmbed" src="" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" title="Kick player" style="width:100%;height:100%;border:0"></iframe>
+      </div>
+
+      <!-- mini controls that show after load for quick swap -->
+      <div id="playerMini" class="mini-controls hidden" aria-hidden="true">
+        <input id="playerMiniInput" placeholder="Change Kick username" />
+        <button id="playerMiniLoad">↻</button>
+      </div>
     </section>
 
-    <aside class="sidebar" aria-label="Chat">
-      <div class="title">Stream Chat</div>
-      <div class="chat-wrap">
-        <iframe id="twitchChat" src=""></iframe>
+    <aside class="sidebar" aria-label="Chat area">
+      <div class="header">Stream Chat</div>
+
+      <!-- chat placeholder similar style -->
+      <div id="chatPlaceholder" class="chat-placeholder" aria-hidden="false">
+        <div class="chat-input">
+          <div style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:6px;">Twitch username</div>
+          <input id="chatBigInput" class="field focus-white" placeholder="crazymangovr" aria-label="Twitch username" />
+          <div class="underline" aria-hidden="true"></div>
+        </div>
+        <button id="chatBigSubmit" class="submit-btn" aria-label="Load Twitch chat">Load</button>
+      </div>
+
+      <!-- chat iframe container -->
+      <div id="chatFrameWrap" class="chat-area hidden" aria-hidden="true">
+        <iframe id="twitchChat" class="chat-iframe" src="" title="Twitch chat"></iframe>
+      </div>
+
+      <!-- mini controls for chat -->
+      <div id="chatMini" class="mini-controls hidden" aria-hidden="true" style="top:8px; right:8px; left:auto;">
+        <input id="chatMiniInput" placeholder="Change Twitch username" />
+        <button id="chatMiniLoad">↻</button>
       </div>
     </aside>
   </main>
 
   <script>
-    // Helper to set iframe sources
-    function loadEmbedsFromInputs(twitchUser, kickUser){
-      const kickFrame = document.getElementById('kickEmbed');
-      const chatFrame = document.getElementById('twitchChat');
+    // Helper: show/hide elements
+    function show(el){ el.classList.remove('hidden'); el.setAttribute('aria-hidden','false'); }
+    function hide(el){ el.classList.add('hidden'); el.setAttribute('aria-hidden','true'); }
 
-      if(kickUser){
-        kickFrame.src = 'https://player.kick.com/' + encodeURIComponent(kickUser);
-      } else {
-        kickFrame.src = '';
-      }
-
-      if(twitchUser){
-        const parent = encodeURIComponent(location.hostname);
-        chatFrame.src = 'https://www.twitch.tv/embed/' + encodeURIComponent(twitchUser) + '/chat?darkpopout&parent=' + parent;
-      } else {
-        chatFrame.src = '';
-      }
+    // Kick load from big placeholder
+    function loadKickFromBig() {
+      const user = document.getElementById('playerBigInput').value.trim();
+      const frame = document.getElementById('kickEmbed');
+      if(!user) return;
+      frame.src = 'https://player.kick.com/' + encodeURIComponent(user);
+      show(document.getElementById('playerFrameWrap'));
+      show(document.getElementById('playerMini'));
+      hide(document.getElementById('playerPlaceholder'));
+      // populate mini input for quick changes
+      document.getElementById('playerMiniInput').value = user;
     }
 
-    // Read from topbar inputs
-    function loadEmbeds(){
-      const twitchUser = document.getElementById('twitchUserTop').value.trim();
-      const kickUser = document.getElementById('kickUserTop').value.trim();
-      loadEmbedsFromInputs(twitchUser, kickUser);
+    // Twitch chat load from panel
+    function loadTwitchFromBig() {
+      const user = document.getElementById('chatBigInput').value.trim();
+      const frame = document.getElementById('twitchChat');
+      if(!user) return;
+      const parent = encodeURIComponent(location.hostname);
+      frame.src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + parent;
+      show(document.getElementById('chatFrameWrap'));
+      show(document.getElementById('chatMini'));
+      hide(document.getElementById('chatPlaceholder'));
+      document.getElementById('chatMiniInput').value = user;
     }
 
-    // Wire up watch button & Enter key
-    document.getElementById('watchBtn').addEventListener('click', loadEmbeds);
+    // Mini control re-load handlers
+    function loadKickFromMini(){
+      const user = document.getElementById('playerMiniInput').value.trim();
+      if(!user) return;
+      document.getElementById('kickEmbed').src = 'https://player.kick.com/' + encodeURIComponent(user);
+    }
+    function loadTwitchFromMini(){
+      const user = document.getElementById('chatMiniInput').value.trim();
+      if(!user) return;
+      document.getElementById('twitchChat').src = 'https://www.twitch.tv/embed/' + encodeURIComponent(user) + '/chat?darkpopout&parent=' + encodeURIComponent(location.hostname);
+    }
 
-    // Allow Enter to trigger watch for the two topbar inputs
-    ['twitchUserTop','kickUserTop'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      el.addEventListener('keydown', function(e){
-        if(e.key === 'Enter'){
-          loadEmbeds();
-        }
-      });
+    // Wire up buttons & Enter behavior
+    document.getElementById('playerBigSubmit').addEventListener('click', loadKickFromBig);
+    document.getElementById('chatBigSubmit').addEventListener('click', loadTwitchFromBig);
+    document.getElementById('playerMiniLoad').addEventListener('click', loadKickFromMini);
+    document.getElementById('chatMiniLoad').addEventListener('click', loadTwitchFromMini);
+
+    document.getElementById('playerBigInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadKickFromBig();
+    });
+    document.getElementById('chatBigInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadTwitchFromBig();
+    });
+    document.getElementById('playerMiniInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadKickFromMini();
+    });
+    document.getElementById('chatMiniInput').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') loadTwitchFromMini();
     });
 
-    // Optional: prefill demo values for convenience (remove if undesired)
-    // document.getElementById('twitchUserTop').value = 'xqc';
-    // document.getElementById('kickUserTop').value = 'trainwreckstv';
-    // loadEmbeds();
+    // Watch All: trigger both panel loads
+    document.getElementById('watchAllBtn').addEventListener('click', function(){
+      loadKickFromBig();
+      loadTwitchFromBig();
+    });
+
+    // If you want to preset values for testing, uncomment:
+    // document.getElementById('playerBigInput').value = 'trainwreckstv';
+    // document.getElementById('chatBigInput').value = 'xqc';
+    // Optionally auto-load on page open (commented):
+    // loadKickFromBig(); loadTwitchFromBig();
   </script>
 
 </body>
